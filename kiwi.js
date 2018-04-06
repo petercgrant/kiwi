@@ -2520,4 +2520,532 @@ var kiwi = exports || kiwi || {}, exports;
   kiwi.compileSchemaTypeScript = compileSchemaTypeScript;
 }());
 
+// Go Compiler (tree style)
+(function() {
+  var ByteBuffer = kiwi.ByteBuffer;
+
+  function goType(definitions, field, isArray) {
+    var type;
+
+    switch (field.type) {
+      case 'bool': type = 'bool'; break;
+      case 'byte': type = 'byte'; break;
+      case 'int': type = 'int32'; break;
+      case 'uint': type = 'uint32'; break;
+      case 'float': type = 'float32'; break;
+      case 'string': type = 'string'; break;
+
+      default: {
+        var definition = definitions[field.type];
+
+        if (!definition) {
+          error('Invalid type ' + quote(field.type) + ' for field ' + quote(field.name), field.line, field.column);
+        }
+
+        type = definition.name;
+        break;
+      }
+    }
+
+    if (isArray) {
+      type = '[]' + type;
+    }
+
+    return type;
+  }
+
+  function goFieldName(field) {
+    return '_data_' + field.name;
+  }
+
+  function goAccessorName(field) {
+    //return field.charAt(0).toUpperCase() + field.slice(1);
+    return 'Get' + field
+  }
+
+  function goSetterName(field) {
+    //return 'Set' + field.charAt(0).toUpperCase() + field.slice(1);
+    return 'Set' + field
+  }
+
+  function goFlagIndex(i) {
+    return i >> 5;
+  }
+
+  function goFlagMask(i) {
+    return 1 << (i % 32) >>> 0;
+  }
+
+  function goIsFieldPointer(definitions, field) {
+    return !field.isArray && field.type in definitions && definitions[field.type].kind !== 'ENUM';
+  }
+
+  function compileSchemaGo(schema) {
+    schema = convertSchema(schema);
+
+    var definitions = {};
+    var go = [];
+
+    if (schema.package !== null) {
+      go.push('package ' + schema.package);
+      go.push('');
+    }
+
+    go.push('import "github.com/petercgrant/kiwi"');
+    go.push('');
+
+  for (var i = 0; i < schema.definitions.length; i++) {
+      var definition = schema.definitions[i];
+      definitions[definition.name] = definition;
+    }
+
+    go.push('type BinarySchema struct {');
+    go.push('\tschema kiwi.BinarySchema');
+
+    for (var i = 0; i < schema.definitions.length; i++) {
+      var definition = schema.definitions[i];
+      if (definition.kind === 'MESSAGE') {
+        go.push('\tindex' + definition.name + ' uint32');
+      }
+    }
+
+    go.push('}');
+
+    go.push('');
+
+    for (var i = 0; i < schema.definitions.length; i++) {
+      var definition = schema.definitions[i];
+
+      if (definition.kind === 'ENUM') {
+        go.push('type ' + definition.name + ' uint32');
+        go.push('const (');
+        go.push('');
+        for (var j = 0; j < definition.fields.length; j++) {
+          var field = definition.fields[j];
+          go.push('\t' + field.name + ' ' + definition.name + ' = ' + field.value);
+        }
+        go.push(')');
+        go.push('');
+      }
+
+      else if (definition.kind !== 'STRUCT' && definition.kind !== 'MESSAGE') {
+        error('Invalid definition kind ' + quote(definition.kind), definition.line, definition.column);
+      }
+    }
+
+    for (var pass = 0; pass < 3; pass++) {
+      var newline = false;
+
+      if (pass === 2) {
+        go.push('');
+
+        go.push('func (bs *BinarySchema) Parse(bb *kiwi.ByteBuffer) bool {');
+        go.push('\tif !bs.schema.Parse(bb) {');
+        go.push('\t\treturn false');
+        go.push('\t}');
+
+        go.push('');
+
+        for (var i = 0; i < schema.definitions.length; i++) {
+          var definition = schema.definitions[i];
+          if (definition.kind === 'MESSAGE') {
+            go.push('\tbs.schema.FindDefinition("' + definition.name + '", &bs.index' + definition.name + ')');
+          }
+        }
+
+        go.push('\treturn true');
+        go.push('}');
+        go.push('');
+
+        for (var i = 0; i < schema.definitions.length; i++) {
+          var definition = schema.definitions[i];
+          if (definition.kind === 'MESSAGE') {
+            go.push('func (bs *BinarySchema) Skip' + definition.name + 'Field(bb *kiwi.ByteBuffer, id uint32) bool {');
+            go.push('\treturn bs.schema.SkipField(bb, bs.index' + definition.name + ', id)');
+            go.push('}');
+            go.push('');
+          }
+        }
+      }
+
+      for (var i = 0; i < schema.definitions.length; i++) {
+        var definition = schema.definitions[i];
+
+        if (definition.kind === 'ENUM') {
+          continue;
+        }
+
+        var fields = definition.fields;
+
+        if (pass === 0) {
+          newline = true;
+        }
+
+        else if (pass === 1) {
+          go.push('type ' + definition.name + ' struct {');
+          go.push('\t_flags [' + (fields.length + 31 >> 5) + ']uint32');
+
+          // Sort fields by size since that makes the resulting struct smaller
+          var sizes = {'bool': 1, 'byte': 1, 'int': 4, 'uint': 4, 'float': 4};
+          var sortedFields = fields.slice().sort(function(a, b) {
+            var sizeA = !a.isArray && sizes[a.type] || 8;
+            var sizeB = !b.isArray && sizes[b.type] || 8;
+            if (sizeA !== sizeB) return sizeB - sizeA;
+            return fields.indexOf(a) - fields.indexOf(b); // Make sure the sort is stable
+          });
+
+          for (var j = 0; j < sortedFields.length; j++) {
+            var field = sortedFields[j];
+
+            if (field.isDeprecated) {
+              continue;
+            }
+
+            var name = goFieldName(field);
+            var type = goType(definitions, field, field.isArray);
+
+            if (goIsFieldPointer(definitions, field)) {
+              go.push('\t' + name + ' *' + type);
+            } else {
+              go.push('\t' + name + ' ' + type);
+            }
+          }
+
+          go.push('}');
+          go.push('');
+        }
+
+        else {
+          for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+            var name = goFieldName(field);
+            var type = goType(definitions, field, field.isArray);
+            var flagIndex = goFlagIndex(j);
+            var flagMask = goFlagMask(j);
+
+            if (field.isDeprecated) {
+              continue;
+            }
+
+            if (goIsFieldPointer(definitions, field)) {
+              go.push('func (p *' + definition.name + ') ' + goAccessorName(field.name) + '() *' + type + ' {');
+              go.push('\treturn p.' + name);
+              go.push('}');
+              go.push('');
+
+              go.push('func (p *' + definition.name + ') ' + goSetterName(field.name) + '(value *' + type + ') {');
+              go.push('\tp.' + name + ' = value;');
+              go.push('}');
+              go.push('');
+            }
+
+            else if (field.isArray) {
+              go.push('func (p *' + definition.name + ') ' + goAccessorName(field.name) + '() ' + type + ' {');
+              go.push('\tif p._flags[' + flagIndex + '] & ' + flagMask + ' > 0 {');
+              go.push('\t\treturn p.' + name);
+              go.push('\t}');
+              go.push('\treturn nil');
+              go.push('}');
+              go.push('');
+
+              // TODO: support memory pool?
+              go.push('func (p *' + definition.name + ') ' + goSetterName(field.name) + '(count uint32) ' + type + ' {');
+              go.push('\tp._flags[' + flagIndex + '] |= ' + flagMask);
+              go.push('\tp.' + name + ' = make(' + type + ', int(count))');
+              go.push('\treturn p.name');
+              go.push('}');
+              go.push('');
+            }
+
+            else {
+              go.push('func (p *' + definition.name + ') ' + goAccessorName(field.name) + '() *' + type + ' {');
+              go.push('\tif p._flags[' + flagIndex + '] & ' + flagMask + ' > 0 {');
+              go.push('\t\treturn &p.' + name);
+              go.push('\t}');
+              go.push('\treturn nil');
+              go.push('}');
+              go.push('');
+
+              go.push('func (p *' + definition.name + ') ' + goSetterName(field.name) + '(value ' + type + ') {');
+              go.push('\tp._flags[' + flagIndex + '] |= ' + flagMask);
+              go.push('\tp.' + name + ' = value');
+              go.push('}');
+              go.push('');
+            }
+          }
+
+          go.push('func (p *' + definition.name + ') Encode(bb *kiwi.ByteBuffer) bool {');
+
+          for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+
+            if (field.isDeprecated) {
+              continue;
+            }
+
+            var name = goFieldName(field);
+            var value = field.isArray ? '_it' : ('p.' + name);
+            var flagIndex = goFlagIndex(j);
+            var flagMask = goFlagMask(j);
+            var code;
+
+            switch (field.type) {
+              case 'bool': {
+                code = 'bb.WriteByte(' + value + ')';
+                break;
+              }
+
+              case 'byte': {
+                code = 'bb.WriteByte(' + value + ')';
+                break;
+              }
+
+              case 'int': {
+                code = 'bb.WriteVarInt(' + value + ')';
+                break;
+              }
+
+              case 'uint': {
+                code = 'bb.WriteVarUint(' + value + ')';
+                break;
+              }
+
+              case 'float': {
+                code = 'bb.WriteVarFloat(' + value + ')';
+                break;
+              }
+
+              case 'string': {
+                code = 'bb.WriteString(' + value + ')';
+                break;
+              }
+
+              default: {
+                var type = definitions[field.type];
+
+                if (!type) {
+                  error('Invalid type ' + quote(field.type) + ' for field ' + quote(field.name), field.line, field.column);
+                }
+
+                else if (type.kind === 'ENUM') {
+                  code = 'bb.WriteVarUint(uint32(' + value + '))';
+                }
+
+                else {
+                  code = 'if !' + value + '.Encode(bb) {\n\treturn false\n}';
+                }
+              }
+            }
+
+            var indent = '\t';
+            if (definition.kind === 'STRUCT') {
+              go.push('\tif p.' + goAccessorName(field.name) + '() == nil {');
+              go.push('\t\treturn false');
+              go.push('\t}');
+            } else {
+              go.push('\tif p.' + goAccessorName(field.name) + '() != nil {');
+              indent = '\t\t';
+            }
+
+            if (definition.kind === 'MESSAGE') {
+              go.push(indent + 'bb.WriteVarUint(' + field.value + ')');
+            }
+
+            if (field.isArray) {
+              go.push(indent + 'bb.WriteVarUint(len(' + name + '))');
+              go.push(indent + 'for _, _it := range ' + name + '{');
+              go.push(indent + '\t' + code);
+              go.push(indent + '}')
+            } else {
+              go.push(indent + code);
+            }
+
+            if (definition.kind !== 'STRUCT') {
+              go.push('\t}');
+            }
+          }
+
+          if (definition.kind === 'MESSAGE') {
+            go.push('\tbb.WriteVarUint(0)');
+          }
+
+          go.push('\treturn true;');
+          go.push('}');
+          go.push('');
+
+          go.push('func (p *' + definition.name + ') Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {');
+
+          for (var j = 0; j < fields.length; j++) {
+            if (fields[j].isArray) {
+              go.push('var count uint32');
+              break;
+            }
+          }
+
+          if (definition.kind === 'MESSAGE') {
+            go.push('\tfor {');
+            go.push('\t\tvar typ uint32');
+            go.push('\t\tif !bb.ReadVarUint(&typ) {');
+            go.push('\t\t\treturn false');
+            go.push('\t\t}');
+            go.push('\t\tswitch typ {');
+            go.push('\t\t\tcase 0:');
+            go.push('\t\t\t\treturn true');
+          }
+
+          for (var j = 0; j < fields.length; j++) {
+            var field = fields[j];
+            var name = goFieldName(field);
+            var isPointer = goIsFieldPointer(definitions, field);
+            var value = field.isArray ? '_it' : ((isPointer ? '' : '&') + 'p.' + name); // FIXME: should be p.${name}, but that will break deprecated fields; refactor
+            var code;
+
+            switch (field.type) {
+              case 'bool': {
+                code = 'bb.ReadByte(' + value + ')';
+                break;
+              }
+
+              case 'byte': {
+                code = 'bb.ReadByte(' + value + ')';
+                break;
+              }
+
+              case 'int': {
+                code = 'bb.ReadVarInt(' + value + ')';
+                break;
+              }
+
+              case 'uint': {
+                code = 'bb.ReadVarUint(' + value + ')';
+                break;
+              }
+
+              case 'float': {
+                code = 'bb.ReadVarFloat(' + value + ')';
+                break;
+              }
+
+              case 'string': {
+                code = 'bb.ReadString(' + value + ')';
+                break;
+              }
+
+              default: {
+                var type = definitions[field.type];
+
+                if (!type) {
+                  error('Invalid type ' + quote(field.type) + ' for field ' + quote(field.name), field.line, field.column);
+                }
+
+                else if (type.kind === 'ENUM') {
+                  code = 'bb.ReadVarUint(uint32(' + value + '))';
+                }
+
+                else {
+                  code = value + '.Decode(bb, schema)';
+                }
+              }
+            }
+
+            var type = goType(definitions, field, false);
+            var indent = '\t';
+
+            if (definition.kind === 'MESSAGE') {
+              go.push('\t\t\tcase ' + field.value + ':');
+              indent = '\t\t\t\t';
+            }
+
+            if (field.isArray) {
+              go.push(indent + 'if !bb.ReadVarUint(&count) {');
+              go.push(indent + '\treturn false');
+              go.push(indent + '}');
+
+              if (field.isDeprecated) {
+                go.push(indent + 'var arr ' + type);
+                go.push(indent + '_it := &arr');
+                go.push(indent + 'for j := 0; j < count; j++ {');
+                go.push(indent + '\tif !' + code + ' {');
+                go.push(indent + '\t\treturn false');
+                go.push(indent + '\t}');
+              } else {
+                go.push(indent + 'arr := p.' + goSetterName(field.name) + '(count)');
+                go.push(indent + 'for j := range arr {');
+                go.push(indent + '\t_it := &arr[j]');
+                go.push(indent + '\tif !' + code + ' {');
+                go.push(indent + '\t\treturn false');
+                go.push(indent + '\t}');
+              }
+            }
+
+            else {
+              if (field.isDeprecated) {
+                if (isPointer) {
+                  go.push(indent + 'p := struct { ' + name + ' *' + type + ' }{}');
+                } else {
+                  go.push(indent + 'p := struct { ' + name + ' ' + type + ' }{}');
+                }
+
+                go.push(indent + 'if !' + code + ' {');
+                go.push(indent + '\treturn false');
+                go.push(indent + '}');
+              }
+
+              else {
+                if (isPointer) {
+                  go.push(indent + 'p.' + name + ' = &' + type + '{}');
+                }
+
+                go.push(indent + 'if !' + code + ' {');
+                go.push(indent + '\treturn false');
+                go.push(indent + '}');
+
+                if (!isPointer) {
+                  go.push(indent + 'p.' + goSetterName(field.name) + '(p.' + name + ')');
+                }
+              }
+            }
+
+            // TODO: make this fallthrough for not-MESSAGE?
+            if (definition.kind === 'MESSAGE') {
+              go.push('\t\t\t\tbreak;');
+            }
+          }
+
+          if (definition.kind === 'MESSAGE') {
+            go.push('\t\t\tdefault:');
+            go.push('\t\t\t\tif schema == nil || !schema.Skip' + definition.name + 'Field(bb, typ) {');
+            go.push('\t\t\t\t\treturn false');
+            go.push('\t\t\t\t}');
+            go.push('\t\t\t\tbreak');
+            go.push('\t\t}');
+            go.push('\t}');
+          }
+
+          else {
+            go.push('\treturn true');
+          }
+
+          go.push('}');
+          go.push('');
+        }
+      }
+
+      if (pass === 2) {
+        go.push('');
+      }
+
+      else if (newline) go.push('');
+    }
+
+    if (schema.package !== null) {
+      go.push('');
+    }
+
+    return go.join('\n');
+  }
+
+  kiwi.compileSchemaGo = compileSchemaGo;
+}());
+
 }());

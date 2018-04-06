@@ -16,6 +16,7 @@ var usage = [
   '  --cpp [PATH]          Generate C++ code (tree style).',
   '  --callback-cpp [PATH] Generate C++ code (callback style).',
   '  --skew [PATH]         Generate Skew code.',
+  '  --go [PATH]           Generate Go code (tree style).',
   '  --binary [PATH]       Encode the schema as a binary blob.',
   '  --root-type [NAME]    Set the root type for JSON.',
   '  --to-json [PATH]      Convert a binary file to JSON.',
@@ -40,6 +41,7 @@ var main = exports.main = function(args) {
     '--cpp': null,
     '--callback-cpp': null,
     '--skew': null,
+    '--go': null,
     '--binary': null,
     '--root-type': null,
     '--to-json': null,
@@ -115,6 +117,11 @@ var main = exports.main = function(args) {
   // Generate Skew code
   if (flags['--skew'] !== null) {
     fs.writeFileSync(flags['--skew'], kiwi.compileSchemaSkew(content));
+  }
+
+  // Generate Go code
+  if (flags['--go'] !== null) {
+    fs.writeFileSync(flags['--go'], kiwi.compileSchemaGo(content));
   }
 
   // Generate a binary schema file
