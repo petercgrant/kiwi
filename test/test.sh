@@ -6,6 +6,8 @@ node ../cli.js --schema ./test-schema.kiwi --js ./test-schema.js
 
 node ../cli.js --schema ./test-schema.kiwi --ts ./test-schema.ts
 
+node ../cli.js --schema ./test-schema.kiwi --go ./test-schema.go
+
 # node ../cli.js --schema ./test-schema.kiwi --cpp ./test-schema.h && \
 #   node ../cli.js --schema ./test1-schema.kiwi --cpp ./test1-schema.h --binary ./test1-schema.bkiwi && \
 #   node ../cli.js --schema ./test2-schema.kiwi --cpp ./test2-schema.h --binary ./test2-schema.bkiwi && \
