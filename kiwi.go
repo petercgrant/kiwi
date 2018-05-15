@@ -27,61 +27,56 @@ type FieldType int32
 type Kind byte
 
 type ByteBuffer struct {
-	b *bytes.Buffer
+	*bytes.Buffer
 }
 
 func NewByteBuffer() *ByteBuffer {
 	bb := ByteBuffer{
-		b: bytes.NewBuffer(make([]byte, 0, InitialCapacity)),
+		Buffer: bytes.NewBuffer(make([]byte, 0, InitialCapacity)),
 	}
 	return &bb
 }
 
 func NewSharedByteBuffer(data []byte) *ByteBuffer {
 	bb := ByteBuffer{
-		b: bytes.NewBuffer(data),
+		Buffer: bytes.NewBuffer(data),
 	}
 	return &bb
 }
 
-func (bb *ByteBuffer) ReadBool(result *bool) bool {
-	var value byte
-	if !bb.ReadByte(&value) {
-		*result = false
-		return false
+func (bb *ByteBuffer) ReadBool() (bool, bool) {
+	value, ok := bb.ReadByte()
+	if !ok {
+		return false, false
 	}
 
-	*result = !(value == 0)
-	return true
+	return !(value == 0), true
 }
 
-func (bb *ByteBuffer) ReadByte(result *byte) bool {
-	var err error
-	*result, err = bb.b.ReadByte()
-	return err == nil
+func (bb *ByteBuffer) ReadByte() (byte, bool) {
+	result, err := bb.Buffer.ReadByte()
+	return result, err == nil
 }
 
-func (bb *ByteBuffer) ReadVarFloat(result *float32) bool {
-	var first byte
-	if !bb.ReadByte(&first) {
-		return false
+func (bb *ByteBuffer) ReadVarFloat() (float32, bool) {
+	first, ok := bb.ReadByte()
+	if !ok {
+		return 0, false
 	}
 
 	// Optimization: use a single byte to store zero
 	if first == 0 {
-		*result = 0
-		return true
+		return 0, true
 	}
 
 	// Endian-independent 32-bit read
-	if bb.b.Len() < 3 {
-		*result = 0
-		return false
+	if bb.Buffer.Len() < 3 {
+		return 0, false
 	}
 
 	rest := make([]byte, 3)
-	if _, err := bb.b.Read(rest); err != nil {
-		return false
+	if _, err := bb.Buffer.Read(rest); err != nil {
+		return 0, false
 	}
 	bits := uint32(first) | (uint32(rest[0]) << 8) | (uint32(rest[1]) << 16) | (uint32(rest[2]) << 24)
 
@@ -89,41 +84,42 @@ func (bb *ByteBuffer) ReadVarFloat(result *float32) bool {
 	bits = (bits << 23) | (bits >> 9)
 
 	// Reinterpret as a floating-point number
-	*result = math.Float32frombits(bits)
-	return true
+	return math.Float32frombits(bits), true
 }
-func (bb *ByteBuffer) ReadVarUint(result *uint32) bool {
+func (bb *ByteBuffer) ReadVarUint() (uint32, bool) {
 	var shift, byte uint8
+	var ok bool
 	value := uint32(0)
 	for more := true; more; more = byte&128 != 0 && shift < 35 {
-		if !bb.ReadByte(&byte) {
-			*result = 0
-			return false
+		byte, ok = bb.ReadByte()
+		if !ok {
+			return 0, false
 		}
 		value |= (uint32(byte) & 127) << shift
 		shift += 7
 	}
-	*result = value
-	return true
+	return value, true
 }
-func (bb *ByteBuffer) ReadVarInt(result *int32) bool {
-	var value uint32
-	if !bb.ReadVarUint(&value) {
-		*result = 0
-		return false
+func (bb *ByteBuffer) ReadVarInt() (int32, bool) {
+	value, ok := bb.ReadVarUint()
+	if !ok {
+		return 0, false
 	}
 
+	var result int32
 	if value&1 != 0 {
-		*result = int32(^(value >> 1))
+		result = int32(^(value >> 1))
 	} else {
-		*result = int32(value >> 1)
+		result = int32(value >> 1)
 	}
-	return true
+	return result, true
 }
-func (bb *ByteBuffer) ReadString(result *string) bool {
-	var err error
-	*result, err = bb.b.ReadString(0)
-	return err == nil
+func (bb *ByteBuffer) ReadString() (string, bool) {
+	result, err := bb.Buffer.ReadString(0)
+	if err == nil && len(result) == 0 {
+		return "", false
+	}
+	return result[:len(result)-1], err == nil
 }
 func (bb *ByteBuffer) WriteBool(value bool) {
 	if value {
@@ -133,12 +129,12 @@ func (bb *ByteBuffer) WriteBool(value bool) {
 	}
 }
 func (bb *ByteBuffer) WriteByte(value byte) {
-	bb.b.Grow(1)
-	bb.b.WriteByte(value)
+	bb.Buffer.Grow(1)
+	bb.Buffer.WriteByte(value)
 }
 func (bb *ByteBuffer) WriteBytes(value []byte) {
-	bb.b.Grow(len(value))
-	bb.b.Write(value)
+	bb.Buffer.Grow(len(value))
+	bb.Buffer.Write(value)
 }
 func (bb *ByteBuffer) WriteVarFloat(value float32) {
 	// Reinterpret as an integer
@@ -181,22 +177,30 @@ type BinarySchema struct {
 }
 
 func (bs *BinarySchema) Parse(bb *ByteBuffer) bool {
-	var definitionCount uint32
 	bs.definitions = nil
 
-	if !bb.ReadVarUint(&definitionCount) {
+	definitionCount, ok := bb.ReadVarUint()
+	if !ok {
 		return false
 	}
 
 	bs.definitions = make([]Definition, definitionCount)
 	for j := range bs.definitions {
 		definition := &bs.definitions[j]
-		var fieldCount uint32
-		var kind byte
-		if !bb.ReadString(&definition.Name) ||
-			!bb.ReadByte(&kind) ||
-			!bb.ReadVarUint(&fieldCount) ||
-			!(kind != byte(KindEnum) && kind != byte(KindStruct) && kind != byte(KindMessage)) {
+		definition.Name, ok = bb.ReadString()
+		if !ok {
+			return false
+		}
+		kind, ok := bb.ReadByte()
+		if !ok {
+			return false
+		}
+		fieldCount, ok := bb.ReadVarUint()
+		if !ok {
+			return false
+		}
+
+		if !(kind != byte(KindEnum) && kind != byte(KindStruct) && kind != byte(KindMessage)) {
 			return false
 		}
 		definition.Kind = Kind(kind)
@@ -206,11 +210,24 @@ func (bs *BinarySchema) Parse(bb *ByteBuffer) bool {
 		for k := range definition.Fields {
 			field := &definition.Fields[k]
 			var fieldType int32
-			if !bb.ReadString(&field.Name) ||
-				!bb.ReadVarInt(&fieldType) ||
-				!bb.ReadBool(&field.IsArray) ||
-				!bb.ReadVarUint(&field.Value) ||
-				fieldType < int32(FieldTypeString) ||
+			field.Name, ok = bb.ReadString()
+			if !ok {
+				return false
+			}
+			fieldType, ok := bb.ReadVarInt()
+			if !ok {
+				return false
+			}
+			field.IsArray, ok = bb.ReadBool()
+			if !ok {
+				return false
+			}
+			field.Value, ok = bb.ReadVarUint()
+			if !ok {
+				return false
+			}
+
+			if fieldType < int32(FieldTypeString) ||
 				fieldType >= int32(definitionCount) {
 				return false
 			}
@@ -260,9 +277,11 @@ type Definition struct {
 
 func (bs *BinarySchema) skipField(bb *ByteBuffer, field *Field) bool {
 	count := uint32(1)
-
-	if field.IsArray && !bb.ReadVarUint(&count) {
-		return false
+	if field.IsArray {
+		var ok bool
+		if count, ok = bb.ReadVarUint(); !ok {
+			return false
+		}
 	}
 
 	for ; count > 0; count-- {
@@ -270,29 +289,25 @@ func (bs *BinarySchema) skipField(bb *ByteBuffer, field *Field) bool {
 		case FieldTypeBool:
 			fallthrough
 		case FieldTypeByte:
-			var dummy byte
-			if !bb.ReadByte(&dummy) {
+			if _, ok := bb.ReadByte(); !ok {
 				return false
 			}
-
 		case FieldTypeInt:
 			fallthrough
 		case FieldTypeUint:
-			var dummy uint32
-			if !bb.ReadVarUint(&dummy) {
+			if _, ok := bb.ReadVarUint(); !ok {
 				return false
 			}
-
 		case FieldTypeFloat:
-			var dummy float32
-			if !bb.ReadVarFloat(&dummy) {
+			if _, ok := bb.ReadVarFloat(); !ok {
 				return false
 			}
-
 		case FieldTypeString:
 			var dummy byte
 			for more := true; more; more = dummy != 0 {
-				if !bb.ReadByte(&dummy) {
+				var ok bool
+				dummy, ok = bb.ReadByte()
+				if !ok {
 					return false
 				}
 			}
@@ -304,11 +319,9 @@ func (bs *BinarySchema) skipField(bb *ByteBuffer, field *Field) bool {
 
 			switch definition.Kind {
 			case KindEnum:
-				var dummy uint32
-				if !bb.ReadVarUint(&dummy) {
+				if _, ok := bb.ReadVarUint(); !ok {
 					return false
 				}
-
 			case KindStruct:
 				for j := range definition.Fields {
 					item := &definition.Fields[j]
@@ -318,9 +331,9 @@ func (bs *BinarySchema) skipField(bb *ByteBuffer, field *Field) bool {
 				}
 
 			case KindMessage:
-				var id uint32
 				for true {
-					if !bb.ReadVarUint(&id) {
+					id, ok := bb.ReadVarUint()
+					if !ok {
 						return false
 					}
 					if id == 0 {
