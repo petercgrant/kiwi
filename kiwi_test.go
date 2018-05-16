@@ -228,7 +228,7 @@ func aTestEnumMessage(t *testing.T) {
 		assert.True(t, z.Decode(kiwi.NewSharedByteBuffer(o), schema))
 		assert.EqualValues(t, z, v)
 	}
-	a := test.A
+	a := test.Enum_A
 	check(nil, []byte{0})
 	check(&a, []byte{1, 100, 0})
 
@@ -495,7 +495,7 @@ func aTestEnumArrayStruct(t *testing.T) {
 	}
 	//check(nil, []byte{0}) // TODO: FIXME
 	check([]test.Enum{}, []byte{0})
-	check([]test.Enum{test.B, test.A}, []byte{2, 200, 1, 100})
+	check([]test.Enum{test.Enum_B, test.Enum_A}, []byte{2, 200, 1, 100})
 }
 
 func aTestEnumArrayMessage(t *testing.T) {
@@ -518,7 +518,7 @@ func aTestEnumArrayMessage(t *testing.T) {
 	}
 	check(nil, []byte{0})
 	check([]test.Enum{}, []byte{1, 0, 0})
-	check([]test.Enum{test.B, test.A}, []byte{1, 2, 200, 1, 100, 0})
+	check([]test.Enum{test.Enum_B, test.Enum_A}, []byte{1, 2, 200, 1, 100, 0})
 }
 
 func aTestBoolArrayStruct(t *testing.T) {

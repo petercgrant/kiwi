@@ -1,9 +1,6 @@
 package test
 
-import (
-	"github.com/petercgrant/kiwi"
-	"fmt"
-)
+import "github.com/petercgrant/kiwi"
 
 type BinarySchema struct {
 	schema kiwi.BinarySchema
@@ -34,8 +31,8 @@ type BinarySchema struct {
 type Enum uint32
 const (
 
-	A Enum = 100
-	B Enum = 200
+	Enum_A Enum = 100
+	Enum_B Enum = 200
 )
 
 
@@ -2707,7 +2704,6 @@ func (p *DeprecatedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bo
 		if !ok {
 			return false
 		}
-		fmt.Printf("decode tag %d\n", typ)
 		switch typ {
 			case 0:
 				return true
@@ -3219,5 +3215,4 @@ func (p *SortedStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	}
 	return true
 }
-
 
