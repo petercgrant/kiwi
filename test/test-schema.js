@@ -13,10 +13,18 @@ test["decodeEnumStruct"] = function(bb) {
     bb = new this.ByteBuffer(bb);
   }
 
-  result["x"] = this["Enum"][bb.readVarUint()];
+  result["x"] = (function (t) {
+  var byte = bb.readVarUint();
+  if (undefined == t["Enum"][byte]) { throw new Error("Attempted to parse invalid enum"); }
+  return t["Enum"][byte]
+})(this);
   var values = result["y"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(this["Enum"][bb.readVarUint()]);
+  while (length-- > 0) { values.push((function (t) {
+  var byte = bb.readVarUint();
+  if (undefined == t["Enum"][byte]) { throw new Error("Attempted to parse invalid enum"); }
+  return t["Enum"][byte]
+})(this)); }
   return result;
 };
 
@@ -231,6 +239,9 @@ test["decodeNestedStruct"] = function(bb) {
   result["a"] = bb.readVarUint();
   result["b"] = this["decodeCompoundStruct"](bb);
   result["c"] = bb.readVarUint();
+  var map = result["d"] = {};
+  var length = bb.readVarUint();
+  while (length-- > 0) { map[bb.readString()] = this["decodeCompoundStruct"](bb); }
   return result;
 };
 
@@ -258,6 +269,59 @@ test["encodeNestedStruct"] = function(message, bb) {
   } else {
     throw new Error("Missing required field \"c\"");
   }
+
+  var value = message["d"];
+  if (value != null) {
+    var obj = value, keys = Object.keys(obj), n = keys.length;
+    bb.writeVarUint(n);
+    for (var i = 0; i < keys.length; i++) {
+      value = keys[i];
+      bb.writeString(value);
+      value = obj[keys[i]];
+      this["encodeCompoundStruct"](value, bb);
+    }
+  } else {
+    throw new Error("Missing required field \"d\"");
+  }
+
+  if (isTopLevel) return bb.toUint8Array();
+};
+
+test["decodeEnumMessage"] = function(bb) {
+  var result = {};
+  if (!(bb instanceof this.ByteBuffer)) {
+    bb = new this.ByteBuffer(bb);
+  }
+
+  while (true) {
+    switch (bb.readVarUint()) {
+    case 0:
+      return result;
+
+    case 1:
+      result["x"] = (function (t) {
+  var byte = bb.readVarUint();
+  if (undefined == t["Enum"][byte]) { throw new Error("Attempted to parse invalid enum"); }
+  return t["Enum"][byte]
+})(this);
+      break;
+
+    default:
+      throw new Error("Attempted to parse invalid message");
+    }
+  }
+};
+
+test["encodeEnumMessage"] = function(message, bb) {
+  var isTopLevel = !bb;
+  if (isTopLevel) bb = new this.ByteBuffer();
+
+  var value = message["x"];
+  if (value != null) {
+    bb.writeVarUint(1);
+    var encoded = this["Enum"][value]; if (encoded === void 0) throw new Error("Invalid value " + JSON.stringify(value) + " for enum \"Enum\""); bb.writeVarUint(encoded);
+  }
+  bb.writeVarUint(0);
 
   if (isTopLevel) return bb.toUint8Array();
 };
@@ -437,6 +501,49 @@ test["encodeFloatMessage"] = function(message, bb) {
   if (isTopLevel) return bb.toUint8Array();
 };
 
+test["decodeFloat32ArrayMessage"] = function(bb) {
+  var result = {};
+  if (!(bb instanceof this.ByteBuffer)) {
+    bb = new this.ByteBuffer(bb);
+  }
+
+  while (true) {
+    switch (bb.readVarUint()) {
+    case 0:
+      return result;
+
+    case 1:
+      var length = bb.readVarUint();
+      var values = result["x"] = new Float32Array(length);
+      var c = 0;
+      while (length-- > 0) { values[c] = (bb.readVarFloat()); c++ }
+      break;
+
+    default:
+      throw new Error("Attempted to parse invalid message");
+    }
+  }
+};
+
+test["encodeFloat32ArrayMessage"] = function(message, bb) {
+  var isTopLevel = !bb;
+  if (isTopLevel) bb = new this.ByteBuffer();
+
+  var value = message["x"];
+  if (value != null) {
+    bb.writeVarUint(1);
+    var values = value, n = values.length;
+    bb.writeVarUint(n);
+    for (var i = 0; i < n; i++) {
+      value = values[i];
+      bb.writeVarFloat(value);
+    }
+  }
+  bb.writeVarUint(0);
+
+  if (isTopLevel) return bb.toUint8Array();
+};
+
 test["decodeStringMessage"] = function(bb) {
   var result = {};
   if (!(bb instanceof this.ByteBuffer)) {
@@ -517,6 +624,50 @@ test["encodeCompoundMessage"] = function(message, bb) {
   if (isTopLevel) return bb.toUint8Array();
 };
 
+test["decodeMapMessage"] = function(bb) {
+  var result = {};
+  if (!(bb instanceof this.ByteBuffer)) {
+    bb = new this.ByteBuffer(bb);
+  }
+
+  while (true) {
+    switch (bb.readVarUint()) {
+    case 0:
+      return result;
+
+    case 1:
+      var map = result["x"] = {};
+      var length = bb.readVarUint();
+      while (length-- > 0) { map[bb.readString()] = bb.readVarInt(); }
+      break;
+
+    default:
+      throw new Error("Attempted to parse invalid message");
+    }
+  }
+};
+
+test["encodeMapMessage"] = function(message, bb) {
+  var isTopLevel = !bb;
+  if (isTopLevel) bb = new this.ByteBuffer();
+
+  var value = message["x"];
+  if (value != null) {
+    bb.writeVarUint(1);
+    var obj = value, keys = Object.keys(obj), n = keys.length;
+    bb.writeVarUint(n);
+    for (var i = 0; i < keys.length; i++) {
+      value = keys[i];
+      bb.writeString(value);
+      value = obj[keys[i]];
+      bb.writeVarInt(value);
+    }
+  }
+  bb.writeVarUint(0);
+
+  if (isTopLevel) return bb.toUint8Array();
+};
+
 test["decodeNestedMessage"] = function(bb) {
   var result = {};
   if (!(bb instanceof this.ByteBuffer)) {
@@ -538,6 +689,12 @@ test["decodeNestedMessage"] = function(bb) {
 
     case 3:
       result["c"] = bb.readVarUint();
+      break;
+
+    case 4:
+      var map = result["d"] = {};
+      var length = bb.readVarUint();
+      while (length-- > 0) { map[bb.readString()] = this["decodeCompoundMessage"](bb); }
       break;
 
     default:
@@ -567,7 +724,55 @@ test["encodeNestedMessage"] = function(message, bb) {
     bb.writeVarUint(3);
     bb.writeVarUint(value);
   }
+
+  var value = message["d"];
+  if (value != null) {
+    bb.writeVarUint(4);
+    var obj = value, keys = Object.keys(obj), n = keys.length;
+    bb.writeVarUint(n);
+    for (var i = 0; i < keys.length; i++) {
+      value = keys[i];
+      bb.writeString(value);
+      value = obj[keys[i]];
+      this["encodeCompoundMessage"](value, bb);
+    }
+  }
   bb.writeVarUint(0);
+
+  if (isTopLevel) return bb.toUint8Array();
+};
+
+test["decodeEnumArrayStruct"] = function(bb) {
+  var result = {};
+  if (!(bb instanceof this.ByteBuffer)) {
+    bb = new this.ByteBuffer(bb);
+  }
+
+  var values = result["x"] = [];
+  var length = bb.readVarUint();
+  while (length-- > 0) { values.push((function (t) {
+  var byte = bb.readVarUint();
+  if (undefined == t["Enum"][byte]) { throw new Error("Attempted to parse invalid enum"); }
+  return t["Enum"][byte]
+})(this)); }
+  return result;
+};
+
+test["encodeEnumArrayStruct"] = function(message, bb) {
+  var isTopLevel = !bb;
+  if (isTopLevel) bb = new this.ByteBuffer();
+
+  var value = message["x"];
+  if (value != null) {
+    var values = value, n = values.length;
+    bb.writeVarUint(n);
+    for (var i = 0; i < n; i++) {
+      value = values[i];
+      var encoded = this["Enum"][value]; if (encoded === void 0) throw new Error("Invalid value " + JSON.stringify(value) + " for enum \"Enum\""); bb.writeVarUint(encoded);
+    }
+  } else {
+    throw new Error("Missing required field \"x\"");
+  }
 
   if (isTopLevel) return bb.toUint8Array();
 };
@@ -580,7 +785,7 @@ test["decodeBoolArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(!!bb.readByte());
+  while (length-- > 0) { values.push(!!bb.readByte()); }
   return result;
 };
 
@@ -611,7 +816,7 @@ test["decodeByteArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readByte());
+  while (length-- > 0) { values.push(bb.readByte()); }
   return result;
 };
 
@@ -642,7 +847,7 @@ test["decodeIntArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarInt());
+  while (length-- > 0) { values.push(bb.readVarInt()); }
   return result;
 };
 
@@ -673,7 +878,7 @@ test["decodeUintArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarUint());
+  while (length-- > 0) { values.push(bb.readVarUint()); }
   return result;
 };
 
@@ -704,7 +909,7 @@ test["decodeFloatArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarFloat());
+  while (length-- > 0) { values.push(bb.readVarFloat()); }
   return result;
 };
 
@@ -735,7 +940,7 @@ test["decodeStringArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readString());
+  while (length-- > 0) { values.push(bb.readString()); }
   return result;
 };
 
@@ -766,10 +971,10 @@ test["decodeCompoundArrayStruct"] = function(bb) {
 
   var values = result["x"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarUint());
+  while (length-- > 0) { values.push(bb.readVarUint()); }
   var values = result["y"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarUint());
+  while (length-- > 0) { values.push(bb.readVarUint()); }
   return result;
 };
 
@@ -804,6 +1009,52 @@ test["encodeCompoundArrayStruct"] = function(message, bb) {
   if (isTopLevel) return bb.toUint8Array();
 };
 
+test["decodeEnumArrayMessage"] = function(bb) {
+  var result = {};
+  if (!(bb instanceof this.ByteBuffer)) {
+    bb = new this.ByteBuffer(bb);
+  }
+
+  while (true) {
+    switch (bb.readVarUint()) {
+    case 0:
+      return result;
+
+    case 1:
+      var values = result["x"] = [];
+      var length = bb.readVarUint();
+      while (length-- > 0) { values.push((function (t) {
+  var byte = bb.readVarUint();
+  if (undefined == t["Enum"][byte]) { throw new Error("Attempted to parse invalid enum"); }
+  return t["Enum"][byte]
+})(this)); }
+      break;
+
+    default:
+      throw new Error("Attempted to parse invalid message");
+    }
+  }
+};
+
+test["encodeEnumArrayMessage"] = function(message, bb) {
+  var isTopLevel = !bb;
+  if (isTopLevel) bb = new this.ByteBuffer();
+
+  var value = message["x"];
+  if (value != null) {
+    bb.writeVarUint(1);
+    var values = value, n = values.length;
+    bb.writeVarUint(n);
+    for (var i = 0; i < n; i++) {
+      value = values[i];
+      var encoded = this["Enum"][value]; if (encoded === void 0) throw new Error("Invalid value " + JSON.stringify(value) + " for enum \"Enum\""); bb.writeVarUint(encoded);
+    }
+  }
+  bb.writeVarUint(0);
+
+  if (isTopLevel) return bb.toUint8Array();
+};
+
 test["decodeBoolArrayMessage"] = function(bb) {
   var result = {};
   if (!(bb instanceof this.ByteBuffer)) {
@@ -818,7 +1069,7 @@ test["decodeBoolArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(!!bb.readByte());
+      while (length-- > 0) { values.push(!!bb.readByte()); }
       break;
 
     default:
@@ -860,7 +1111,7 @@ test["decodeByteArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readByte());
+      while (length-- > 0) { values.push(bb.readByte()); }
       break;
 
     default:
@@ -902,7 +1153,7 @@ test["decodeIntArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarInt());
+      while (length-- > 0) { values.push(bb.readVarInt()); }
       break;
 
     default:
@@ -944,7 +1195,7 @@ test["decodeUintArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarUint());
+      while (length-- > 0) { values.push(bb.readVarUint()); }
       break;
 
     default:
@@ -986,7 +1237,7 @@ test["decodeFloatArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarFloat());
+      while (length-- > 0) { values.push(bb.readVarFloat()); }
       break;
 
     default:
@@ -1028,7 +1279,7 @@ test["decodeStringArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readString());
+      while (length-- > 0) { values.push(bb.readString()); }
       break;
 
     default:
@@ -1070,13 +1321,13 @@ test["decodeCompoundArrayMessage"] = function(bb) {
     case 1:
       var values = result["x"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarUint());
+      while (length-- > 0) { values.push(bb.readVarUint()); }
       break;
 
     case 2:
       var values = result["y"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarUint());
+      while (length-- > 0) { values.push(bb.readVarUint()); }
       break;
 
     default:
@@ -1172,13 +1423,13 @@ test["decodeNonDeprecatedMessage"] = function(bb) {
     case 3:
       var values = result["c"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarUint());
+      while (length-- > 0) { values.push(bb.readVarUint()); }
       break;
 
     case 4:
       var values = result["d"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarUint());
+      while (length-- > 0) { values.push(bb.readVarUint()); }
       break;
 
     case 5:
@@ -1281,12 +1532,12 @@ test["decodeDeprecatedMessage"] = function(bb) {
     case 3:
       var values = result["c"] = [];
       var length = bb.readVarUint();
-      while (length-- > 0) values.push(bb.readVarUint());
+      while (length-- > 0) { values.push(bb.readVarUint()); }
       break;
 
     case 4:
       var length = bb.readVarUint();
-      while (length-- > 0) bb.readVarUint();
+      while (length-- > 0) { bb.readVarUint() };
       break;
 
     case 5:
@@ -1364,22 +1615,22 @@ test["decodeSortedStruct"] = function(bb) {
   result["f2"] = bb.readString();
   var values = result["a3"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(!!bb.readByte());
+  while (length-- > 0) { values.push(!!bb.readByte()); }
   var values = result["b3"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readByte());
+  while (length-- > 0) { values.push(bb.readByte()); }
   var values = result["c3"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarInt());
+  while (length-- > 0) { values.push(bb.readVarInt()); }
   var values = result["d3"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarUint());
+  while (length-- > 0) { values.push(bb.readVarUint()); }
   var values = result["e3"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readVarFloat());
+  while (length-- > 0) { values.push(bb.readVarFloat()); }
   var values = result["f3"] = [];
   var length = bb.readVarUint();
-  while (length-- > 0) values.push(bb.readString());
+  while (length-- > 0) { values.push(bb.readString()); }
   return result;
 };
 
