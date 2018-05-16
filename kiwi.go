@@ -165,7 +165,7 @@ func (bb *ByteBuffer) WriteVarUint(value uint32) {
 	}
 }
 func (bb *ByteBuffer) WriteVarInt(value int32) {
-	bb.WriteVarUint((uint32(value) << 1) ^ (uint32(value) >> 31))
+	bb.WriteVarUint((uint32(int32(value)&0x7fffffff) << 1) ^ (uint32(int32(value) >> 31)))
 }
 func (bb *ByteBuffer) WriteString(value string) {
 	bb.WriteBytes([]byte(value))
