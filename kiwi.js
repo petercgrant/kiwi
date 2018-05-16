@@ -2776,10 +2776,8 @@ var kiwi = exports || kiwi || {}, exports;
       var definitions = {};
       var go = [];
 
-      if (schema.package !== null) {
-        go.push('package ' + schema.package);
-        go.push('');
-      }
+      go.push('package ' + (schema.package === null ? 'schema' : schema.package));
+      go.push('');
 
       go.push('import "github.com/petercgrant/kiwi"');
       go.push('');
@@ -3162,10 +3160,6 @@ var kiwi = exports || kiwi || {}, exports;
         }
 
         else if (newline) go.push('');
-      }
-
-      if (schema.package !== null) {
-        go.push('');
       }
 
       return go.join('\n');
