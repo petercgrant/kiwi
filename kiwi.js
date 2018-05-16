@@ -2810,7 +2810,7 @@ var kiwi = exports || kiwi || {}, exports;
           go.push('');
           for (var j = 0; j < definition.fields.length; j++) {
             var field = definition.fields[j];
-            go.push('\t' + field.name + ' ' + definition.name + ' = ' + field.value);
+            go.push('\t' + definition.name + '_' + field.name + ' ' + definition.name + ' = ' + field.value);
           }
           go.push(')');
           go.push('');
