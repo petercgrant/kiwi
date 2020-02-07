@@ -8,8 +8,8 @@ import (
 	"bytes"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/petercgrant/kiwi"
-	"github.com/petercgrant/kiwi/test"
+	"mnk.ee/kiwi"
+	"mnk.ee/kiwi/test"
 )
 
 var schema = &test.BinarySchema{}

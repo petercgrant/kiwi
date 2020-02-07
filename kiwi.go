@@ -2,7 +2,13 @@ package kiwi
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"math"
+	"strings"
+
+	"github.com/go-errors/errors"
+	"github.com/picmonkey/go-spew/spew"
 )
 
 const InitialCapacity = 256
@@ -38,9 +44,17 @@ func NewByteBuffer() *ByteBuffer {
 }
 
 func NewSharedByteBuffer(data []byte) *ByteBuffer {
-	bb := ByteBuffer{
-		Buffer: bytes.NewBuffer(data),
+	n := len(data)
+	if n == 0 {
+		n = cap(data)
+		if n == 0 {
+			n = InitialCapacity
+		}
 	}
+	bb := ByteBuffer{
+		Buffer: bytes.NewBuffer(make([]byte, 0, n)),
+	}
+	bb.Buffer.Write(data)
 	return &bb
 }
 
@@ -93,6 +107,9 @@ func (bb *ByteBuffer) ReadVarUint() (uint32, bool) {
 	for more := true; more; more = byte&128 != 0 && shift < 35 {
 		byte, ok = bb.ReadByte()
 		if !ok {
+			return 0, false
+		}
+		if byte == 0 && value&127 > 0 {
 			return 0, false
 		}
 		value |= (uint32(byte) & 127) << shift
@@ -349,4 +366,228 @@ func (bs *BinarySchema) skipField(bb *ByteBuffer, field *Field) bool {
 		}
 	}
 	return true
+}
+
+type K interface{}
+type V interface{}
+
+type node struct {
+	prev *node
+	next *node
+	k    K
+	v    V
+}
+
+func (n *node) key() K {
+	if n == nil {
+		return nil
+	}
+	return n.k
+}
+func (n *node) value() V {
+	if n == nil {
+		return nil
+	}
+	return n.v
+}
+
+type linkedList struct {
+	head *node
+	tail *node
+}
+
+func (ll *linkedList) append(n *node) {
+	n.prev = ll.tail
+	n.next = nil
+	if ll.tail == nil {
+		ll.head = n
+	} else {
+		ll.tail.next = n
+	}
+	ll.tail = n
+}
+func (ll *linkedList) delete(n *node) {
+	if prev := n.prev; prev != nil {
+		prev.next = n.next
+	}
+	if next := n.next; next != nil {
+		next.prev = n.prev
+	}
+	if n == ll.head {
+		ll.head = n.next
+	}
+	if n == ll.tail {
+		ll.tail = n.prev
+	}
+}
+func NewLinkedMap(cap int) LinkedMap {
+	return LinkedMap{m: make(map[K]*node, cap)}
+}
+
+type LinkedMap struct {
+	m map[K]*node
+	linkedList
+}
+
+func (m *LinkedMap) Set(k K, v V) {
+	n, ok := m.m[k]
+	if ok {
+		n.v = v
+	} else {
+		n = &node{
+			k: k,
+			v: v,
+		}
+		m.append(n)
+		m.m[k] = n
+	}
+}
+func (m *LinkedMap) Get(k K) (V, bool) {
+	n, ok := m.m[k]
+	return n.value(), ok
+}
+func (m *LinkedMap) Delete(k K) {
+	n, ok := m.m[k]
+	if !ok {
+		return
+	}
+	m.delete(n)
+	delete(m.m, k)
+}
+func (m *LinkedMap) Len() int {
+	return len(m.m)
+}
+func (m *LinkedMap) Print(printer *Printer) bool {
+	printer.StartObject()
+	for it := m.Iter(); it.HasNext(); {
+		key, val := it.Next()
+		printer.Print("key", key)
+		printer.Print("val", val)
+	}
+	printer.EndObject()
+	return true
+}
+
+type Iterator struct {
+	cur *node
+}
+
+func (i *Iterator) HasNext() bool {
+	return i.cur != nil
+}
+func (i *Iterator) Next() (K, V) {
+	k, v := i.cur.key(), i.cur.value()
+	if i.cur != nil {
+		i.cur = i.cur.next
+	}
+	return k, v
+}
+func (m *LinkedMap) Iter() Iterator {
+	return Iterator{m.head}
+}
+
+type Printer struct {
+	parent *Printer
+	seen   map[interface{}]bool
+	indent int
+	w      io.Writer
+}
+
+type Print interface {
+	Print(p *Printer) bool
+}
+
+func (p *Printer) Field(name string) {
+	if name == "" {
+		fmt.Fprint(p.w, strings.Repeat("  ", p.indent))
+	} else {
+		fmt.Fprint(p.w, strings.Repeat("  ", p.indent), name, ": ")
+	}
+}
+
+func (p *Printer) StartArray() {
+	fmt.Fprintln(p.w, "[")
+	p.indent++
+}
+
+func (p *Printer) EndArray() {
+	p.indent--
+	indent := strings.Repeat("  ", p.indent)
+	fmt.Fprintf(p.w, "%s]\n", indent)
+}
+
+func (p *Printer) StartObject() {
+	fmt.Fprintln(p.w, "{")
+	p.indent++
+}
+
+func (p *Printer) EndObject() {
+	p.indent--
+	indent := strings.Repeat("  ", p.indent)
+	fmt.Fprintf(p.w, "%s}\n", indent)
+}
+
+func (p *Printer) Print(name string, val interface{}) bool {
+	if p == nil || p.seen == nil {
+		return false
+	}
+	if val == nil {
+		return true
+	}
+	if p.hasSeen(val) {
+		return p.AlreadySeen(name, val)
+	}
+	p.Field(name)
+	//p.seen[val] = true
+	if v, ok := val.(Print); ok {
+		return v.Print(p)
+	}
+	spew.Fdump(p.w, val)
+	return true
+}
+
+func (p *Printer) hasSeen(val interface{}) bool {
+	if p == nil {
+		return false
+	}
+	if p.seen != nil {
+		if p.seen[val] {
+			return true
+		}
+	}
+	return p.parent.hasSeen(val)
+}
+
+func (p *Printer) With(val interface{}) *Printer {
+	return &Printer{
+		parent: p,
+		seen:   map[interface{}]bool{},
+		indent: p.indent,
+		w:      p.w,
+	}
+}
+
+func NewPrinter(w io.Writer) *Printer {
+	return &Printer{
+		seen:   map[interface{}]bool{},
+		indent: 0,
+		w:      w,
+	}
+}
+
+func (p *Printer) AlreadySeen(name, val interface{}) bool {
+	if p == nil || p.seen == nil {
+		return false
+	}
+	p.emit("%s: (already seen)", name)
+	return true
+}
+
+func (p *Printer) emit(format string, args ...interface{}) (int, error) {
+	indent := strings.Repeat("  ", p.indent)
+	n, err := fmt.Fprintf(p.w, indent+format+"\n", args...)
+	if err != nil {
+		return n, errors.Wrap(err, 0)
+	}
+	return n, nil
 }

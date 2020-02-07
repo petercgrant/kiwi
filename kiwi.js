@@ -738,6 +738,7 @@ var kiwi = exports || kiwi || {}, exports;
     return code;
   }
 
+
   function compileDecode(definition, definitions) {
     var lines = [];
     var indent = '  ';
@@ -2723,7 +2724,7 @@ var kiwi = exports || kiwi || {}, exports;
         case 'float':
         case 'float32': type = 'float32'; break;
         case 'string': type = 'string'; break;
-        case 'map': type = 'map[' + goType(definitions, {type: field.mapKeyType}) + ']' + (goIsFieldPointer(definitions, {type: field.mapValueType}) ? '*' : '') + goType(definitions, {type: field.mapValueType}); break;
+        case 'map': type = 'kiwi.LinkedMap'; break;
 
         default: {
           var definition = definitions[field.type];
@@ -2770,6 +2771,14 @@ var kiwi = exports || kiwi || {}, exports;
       return !field.isArray && !field.isMap && field.type in definitions && definitions[field.type].kind !== 'ENUM';
     }
 
+    function printCodeForField(field, definitions, value, indent) {
+      code = []
+      key = field.isArray ? "" : (field.name ? field.name : value);
+      val = field.isArray ? "&_it" : (field.name ? ('p.' + goAccessorName(field.name) + '()') : value);
+      code.push('printer.Print("' + key + '", ' + val + ')');
+      return code;
+    }
+
     function compileSchemaGo(schema) {
       schema = convertSchema(schema);
 
@@ -2779,7 +2788,7 @@ var kiwi = exports || kiwi || {}, exports;
       go.push('package ' + (schema.package === null ? 'schema' : schema.package));
       go.push('');
 
-      go.push('import "github.com/petercgrant/kiwi"');
+      go.push('import "mnk.ee/kiwi"');
       go.push('');
 
       for (var i = 0; i < schema.definitions.length; i++) {
@@ -2875,7 +2884,7 @@ var kiwi = exports || kiwi || {}, exports;
 
             // Sort fields by size since that makes the resulting struct smaller
             var sizes = {'bool': 1, 'byte': 1, 'int': 4, 'uint': 4, 'float': 4};
-            var sortedFields = fields.slice().sort(function(a, b) {
+            var sortedFields = fields.slice().sort(function (a, b) {
               var sizeA = !a.isArray && sizes[a.type] || 8;
               var sizeB = !b.isArray && sizes[b.type] || 8;
               if (sizeA !== sizeB) return sizeB - sizeA;
@@ -2917,6 +2926,9 @@ var kiwi = exports || kiwi || {}, exports;
 
               if (goIsFieldPointer(definitions, field)) {
                 go.push('func (p *' + definition.name + ') ' + goAccessorName(field.name) + '() *' + type + ' {');
+                go.push('\tif p == nil {');
+                go.push('\t\treturn nil');
+                go.push('\t}');
                 go.push('\treturn p.' + name);
                 go.push('}');
                 go.push('');
@@ -2998,8 +3010,11 @@ var kiwi = exports || kiwi || {}, exports;
                 go.push(indent + '\t' + code);
                 go.push(indent + '}')
               } else if (field.isMap) {
-                go.push(indent + 'bb.WriteVarUint(uint32(len(p.' + name + ')))');
-                go.push(indent + 'for key, val := range p.' + name + '{');
+                go.push(indent + 'bb.WriteVarUint(uint32(p.' + name + '.Len()))');
+                go.push(indent + 'for it := p.' + name + '.Iter(); it.HasNext(); {');
+                go.push(indent + '\tkif, vif := it.Next()');
+                go.push(indent + '\tkey := kif.(' + goType(definitions, {type: field.mapKeyType}) + ')');
+                go.push(indent + '\tval := vif.(' + (goIsFieldPointer(definitions, {type: field.mapValueType}) ? '*' : '') + goType(definitions, {type: field.mapValueType}) + ')');
                 go.push(indent + '\t' + code[0]);
                 go.push(indent + '\t' + code[1]);
                 go.push(indent + '}')
@@ -3028,17 +3043,22 @@ var kiwi = exports || kiwi || {}, exports;
                 break;
               }
             }
-            if (fields.length > 0 ) {
+            if (fields.length > 0) {
               go.push('\tvar ok bool');
               go.push('\t_ = ok');
             }
 
             if (definition.kind === 'MESSAGE') {
+              go.push('\thighest := uint32(0)');
               go.push('\tfor {');
               go.push('\t\ttyp, ok := bb.ReadVarUint()');
               go.push('\t\tif !ok {');
               go.push('\t\t\treturn false');
               go.push('\t\t}');
+              go.push('\t\tif typ < highest && typ > 0 {');
+              go.push('\t\t\treturn false');
+              go.push('\t\t}');
+              go.push('\t\thighest = typ');
               go.push('\t\tswitch typ {');
               go.push('\t\t\tcase 0:');
               go.push('\t\t\t\treturn true');
@@ -3073,7 +3093,7 @@ var kiwi = exports || kiwi || {}, exports;
                   go.push(indent + '}');
                 } else {
                   go.push(indent + field.name + ' := p.' + goSetterName(field.name) + '(count)');
-                  go.push(indent + 'for j := range ' + field.name +' {');
+                  go.push(indent + 'for j := range ' + field.name + ' {');
                   go.push(indent + '\t' + field.name + '[j], ok = ' + code);
                   go.push(indent + '\tif !ok {');
                   go.push(indent + '\t\treturn false');
@@ -3099,7 +3119,7 @@ var kiwi = exports || kiwi || {}, exports;
                   go.push(indent + 'if !ok {');
                   go.push(indent + '\treturn false');
                   go.push(indent + '}');
-                  go.push(indent + "p." + goSetterName(field.name) + '(make(' + type + ', count))');
+                  go.push(indent + "p." + goSetterName(field.name) + '(kiwi.NewLinkedMap(int(count)))');
                   go.push(indent + 'for j := uint32(0); j < count; j++ {');
                   go.push(indent + '\tkey, ok := ' + code[0]);
                   go.push(indent + '\tif !ok {');
@@ -3109,7 +3129,7 @@ var kiwi = exports || kiwi || {}, exports;
                   go.push(indent + '\tif !ok {');
                   go.push(indent + '\t\treturn false');
                   go.push(indent + '\t}');
-                  go.push(indent + '\t' + value + '[key] = val');
+                  go.push(indent + '\t' + value + '.Set(key, val)');
                   go.push(indent + '}');
                 }
               } else {
@@ -3150,6 +3170,50 @@ var kiwi = exports || kiwi || {}, exports;
               go.push('\treturn true');
             }
 
+            go.push('}');
+            go.push('');
+
+            go.push('func (p *' + definition.name + ') Print(printer *kiwi.Printer) bool {');
+
+            go.push('\tif p == nil { return true }')
+            go.push('\tprinter = printer.With(p)')
+            go.push('\tprinter.StartObject()')
+
+            for (var j = 0; j < fields.length; j++) {
+              var field = fields[j];
+
+              if (field.isDeprecated) {
+                continue;
+              }
+
+              var name = goFieldName(field);
+              var value = field.isArray ? '_it' : ('p.' + name);
+              var flagIndex = goFlagIndex(j);
+              var flagMask = goFlagMask(j);
+              var indent = '\t';
+
+              go.push('\tif p.' + goAccessorName(field.name) + '() != nil {');
+              indent = '\t\t';
+
+              var code = printCodeForField(field, definitions, value, field.isArray || field.isMap ? indent + '\t' : indent);
+
+              if (field.isArray) {
+                go.push(indent + 'printer.Field("' + field.name + '")')
+                go.push(indent + 'printer.StartArray()');
+                go.push(indent + 'for _, _it := range p.' + name + '{');
+                go.push(indent + '\t' + code);
+                go.push(indent + '}')
+                go.push(indent + 'printer.EndArray()');
+              } else {
+                go.push(indent + code);
+              }
+
+              go.push('\t}');
+            }
+
+            go.push('\tprinter.EndObject()');
+
+            go.push('\treturn true;');
             go.push('}');
             go.push('');
           }
