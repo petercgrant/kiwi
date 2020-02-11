@@ -53,7 +53,7 @@ export function compileSchemaTypeScript(schema: Schema): string {
 
       lines.push(indent + '}');
       lines.push('')
-}
+    }
   }
 
   for (var i = 0; i < schema.definitions.length; i++) {

@@ -6,6 +6,7 @@ import { compileSchemaTypeScript } from './ts';
 import { Schema } from './schema';
 import { compileSchemaCPP } from './cpp';
 import { compileSchemaCallbackCPP } from './cpp-callback';
+import { compileSchemaGo } from './go';
 import { compileSchemaSkew } from './skew';
 import { encodeBinarySchema, decodeBinarySchema } from './binary';
 import { prettyPrintSchema } from './printer';
@@ -26,6 +27,7 @@ let usage = [
   '  --cpp [PATH]          Generate C++ code (tree style).',
   '  --callback-cpp [PATH] Generate C++ code (callback style).',
   '  --skew [PATH]         Generate Skew code.',
+  '  --go [PATH]           Generate Go code (tree style).',
   '  --skew-types [PATH]   Generate Skew type definitions.',
   '  --text [PATH]         Encode the schema as text.',
   '  --binary [PATH]       Encode the schema as a binary blob.',
@@ -73,6 +75,7 @@ export function main(args: string[]): number {
     '--cpp': null,
     '--callback-cpp': null,
     '--skew': null,
+    '--go': null,
     '--skew-types': null,
     '--binary': null,
     '--text': null,
@@ -157,6 +160,11 @@ export function main(args: string[]): number {
   }
   if (flags['--skew-types'] !== null) {
     writeFileString(flags['--skew-types'], compileSchemaSkewTypes(parsed));
+  }
+
+  // Generate Go code
+  if (flags['--go'] !== null) {
+    writeFileString(flags['--go'], compileSchemaGo(parsed));
   }
 
   // Generate a binary schema file

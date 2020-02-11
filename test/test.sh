@@ -8,6 +8,8 @@ node ../js/cli.js --schema ./test-schema.kiwi --js ./test-schema.js
 
 node ../js/cli.js --schema ./test-schema.kiwi --ts ./test-schema.ts
 
+node ../js/cli.js --schema ./test-schema.kiwi --go ./test-schema.go
+
 #node ../js/cli.js --schema ./test-schema.kiwi --cpp ./test-schema.h
 #node ../js/cli.js --schema ./test1-schema.kiwi --cpp ./test1-schema.h --binary ./test1-schema.bkiwi
 #node ../js/cli.js --schema ./test2-schema.kiwi --cpp ./test2-schema.h --binary ./test2-schema.bkiwi
