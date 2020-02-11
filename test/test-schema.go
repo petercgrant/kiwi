@@ -1,6 +1,6 @@
 package test
 
-import "github.com/petercgrant/kiwi"
+import "mnk.ee/kiwi"
 
 type BinarySchema struct {
 	schema kiwi.BinarySchema
@@ -81,7 +81,7 @@ type CompoundStruct struct {
 type NestedStruct struct {
 	_flags [1]uint32
 	_data_b *CompoundStruct
-	_data_d map[string]*CompoundStruct
+	_data_d kiwi.LinkedMap
 	_data_a uint32
 	_data_c uint32
 }
@@ -134,13 +134,13 @@ type CompoundMessage struct {
 
 type MapMessage struct {
 	_flags [1]uint32
-	_data_x map[string]int32
+	_data_x kiwi.LinkedMap
 }
 
 type NestedMessage struct {
 	_flags [1]uint32
 	_data_b *CompoundMessage
-	_data_d map[string]*CompoundMessage
+	_data_d kiwi.LinkedMap
 	_data_a uint32
 	_data_c uint32
 }
@@ -466,6 +466,25 @@ func (p *EnumStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	return true
 }
 
+func (p *EnumStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	if p.Gety() != nil {
+		printer.Field("y")
+		printer.StartArray()
+		for _, _it := range p._data_y{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *BoolStruct) Getx() *bool {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_x
@@ -494,6 +513,17 @@ func (p *BoolStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	}
 	p.Setx(p._data_x)
 	return true
+}
+
+func (p *BoolStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *ByteStruct) Getx() *byte {
@@ -526,6 +556,17 @@ func (p *ByteStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	return true
 }
 
+func (p *ByteStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *IntStruct) Getx() *int32 {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_x
@@ -554,6 +595,17 @@ func (p *IntStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	}
 	p.Setx(p._data_x)
 	return true
+}
+
+func (p *IntStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *UintStruct) Getx() *uint32 {
@@ -586,6 +638,17 @@ func (p *UintStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	return true
 }
 
+func (p *UintStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *FloatStruct) Getx() *float32 {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_x
@@ -616,6 +679,17 @@ func (p *FloatStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	return true
 }
 
+func (p *FloatStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *StringStruct) Getx() *string {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_x
@@ -644,6 +718,17 @@ func (p *StringStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	}
 	p.Setx(p._data_x)
 	return true
+}
+
+func (p *StringStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *CompoundStruct) Getx() *uint32 {
@@ -696,6 +781,20 @@ func (p *CompoundStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool 
 	return true
 }
 
+func (p *CompoundStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	if p.Gety() != nil {
+		printer.Print("y", p.Gety())
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *NestedStruct) Geta() *uint32 {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_a
@@ -709,6 +808,9 @@ func (p *NestedStruct) Seta(value uint32) {
 }
 
 func (p *NestedStruct) Getb() *CompoundStruct {
+	if p == nil {
+		return nil
+	}
 	return p._data_b
 }
 
@@ -728,14 +830,14 @@ func (p *NestedStruct) Setc(value uint32) {
 	p._data_c = value
 }
 
-func (p *NestedStruct) Getd() *map[string]*CompoundStruct {
+func (p *NestedStruct) Getd() *kiwi.LinkedMap {
 	if p._flags[0] & 8 > 0 {
 		return &p._data_d
 	}
 	return nil
 }
 
-func (p *NestedStruct) Setd(value map[string]*CompoundStruct) {
+func (p *NestedStruct) Setd(value kiwi.LinkedMap) {
 	p._flags[0] |= 8
 	p._data_d = value
 }
@@ -758,8 +860,11 @@ func (p *NestedStruct) Encode(bb *kiwi.ByteBuffer) bool {
 	if p.Getd() == nil {
 		return false
 	}
-	bb.WriteVarUint(uint32(len(p._data_d)))
-	for key, val := range p._data_d{
+	bb.WriteVarUint(uint32(p._data_d.Len()))
+	for it := p._data_d.Iter(); it.HasNext(); {
+		kif, vif := it.Next()
+		key := kif.(string)
+		val := vif.(*CompoundStruct)
 		bb.WriteString(key)
 		if !val.Encode(bb) {
 			return false
@@ -793,7 +898,7 @@ func (p *NestedStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	if !ok {
 		return false
 	}
-	p.Setd(make(map[string]*CompoundStruct, count))
+	p.Setd(kiwi.NewLinkedMap(int(count)))
 	for j := uint32(0); j < count; j++ {
 		key, ok := bb.ReadString()
 		if !ok {
@@ -809,9 +914,29 @@ func (p *NestedStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 		if !ok {
 			return false
 		}
-		p._data_d[key] = val
+		p._data_d.Set(key, val)
 	}
 	return true
+}
+
+func (p *NestedStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Geta() != nil {
+		printer.Print("a", p.Geta())
+	}
+	if p.Getb() != nil {
+		printer.Print("b", p.Getb())
+	}
+	if p.Getc() != nil {
+		printer.Print("c", p.Getc())
+	}
+	if p.Getd() != nil {
+		printer.Print("d", p.Getd())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *EnumMessage) Getx() *Enum {
@@ -838,11 +963,16 @@ func (p *EnumMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *EnumMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -865,6 +995,17 @@ func (p *EnumMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *EnumMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *BoolMessage) Getx() *bool {
@@ -891,11 +1032,16 @@ func (p *BoolMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *BoolMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -912,6 +1058,17 @@ func (p *BoolMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *BoolMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *ByteMessage) Getx() *byte {
@@ -938,11 +1095,16 @@ func (p *ByteMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *ByteMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -959,6 +1121,17 @@ func (p *ByteMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *ByteMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *IntMessage) Getx() *int32 {
@@ -985,11 +1158,16 @@ func (p *IntMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *IntMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1006,6 +1184,17 @@ func (p *IntMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *IntMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *UintMessage) Getx() *uint32 {
@@ -1032,11 +1221,16 @@ func (p *UintMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *UintMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1053,6 +1247,17 @@ func (p *UintMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *UintMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *FloatMessage) Getx() *float32 {
@@ -1079,11 +1284,16 @@ func (p *FloatMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *FloatMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1100,6 +1310,17 @@ func (p *FloatMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *FloatMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *Float32ArrayMessage) Getx() []float32 {
@@ -1131,11 +1352,16 @@ func (p *Float32ArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) 
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1159,6 +1385,22 @@ func (p *Float32ArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) 
 				break
 		}
 	}
+}
+
+func (p *Float32ArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *StringMessage) Getx() *string {
@@ -1185,11 +1427,16 @@ func (p *StringMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *StringMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1206,6 +1453,17 @@ func (p *StringMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *StringMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *CompoundMessage) Getx() *uint32 {
@@ -1248,11 +1506,16 @@ func (p *CompoundMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *CompoundMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1277,14 +1540,28 @@ func (p *CompoundMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 	}
 }
 
-func (p *MapMessage) Getx() *map[string]int32 {
+func (p *CompoundMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	if p.Gety() != nil {
+		printer.Print("y", p.Gety())
+	}
+	printer.EndObject()
+	return true;
+}
+
+func (p *MapMessage) Getx() *kiwi.LinkedMap {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_x
 	}
 	return nil
 }
 
-func (p *MapMessage) Setx(value map[string]int32) {
+func (p *MapMessage) Setx(value kiwi.LinkedMap) {
 	p._flags[0] |= 1
 	p._data_x = value
 }
@@ -1292,8 +1569,11 @@ func (p *MapMessage) Setx(value map[string]int32) {
 func (p *MapMessage) Encode(bb *kiwi.ByteBuffer) bool {
 	if p.Getx() != nil {
 		bb.WriteVarUint(1)
-		bb.WriteVarUint(uint32(len(p._data_x)))
-		for key, val := range p._data_x{
+		bb.WriteVarUint(uint32(p._data_x.Len()))
+		for it := p._data_x.Iter(); it.HasNext(); {
+			kif, vif := it.Next()
+			key := kif.(string)
+			val := vif.(int32)
 			bb.WriteString(key)
 			bb.WriteVarInt(val)
 		}
@@ -1306,11 +1586,16 @@ func (p *MapMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1319,7 +1604,7 @@ func (p *MapMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				if !ok {
 					return false
 				}
-				p.Setx(make(map[string]int32, count))
+				p.Setx(kiwi.NewLinkedMap(int(count)))
 				for j := uint32(0); j < count; j++ {
 					key, ok := bb.ReadString()
 					if !ok {
@@ -1329,7 +1614,7 @@ func (p *MapMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 					if !ok {
 						return false
 					}
-					p._data_x[key] = val
+					p._data_x.Set(key, val)
 				}
 				break
 			default:
@@ -1339,6 +1624,17 @@ func (p *MapMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *MapMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *NestedMessage) Geta() *uint32 {
@@ -1354,6 +1650,9 @@ func (p *NestedMessage) Seta(value uint32) {
 }
 
 func (p *NestedMessage) Getb() *CompoundMessage {
+	if p == nil {
+		return nil
+	}
 	return p._data_b
 }
 
@@ -1373,14 +1672,14 @@ func (p *NestedMessage) Setc(value uint32) {
 	p._data_c = value
 }
 
-func (p *NestedMessage) Getd() *map[string]*CompoundMessage {
+func (p *NestedMessage) Getd() *kiwi.LinkedMap {
 	if p._flags[0] & 8 > 0 {
 		return &p._data_d
 	}
 	return nil
 }
 
-func (p *NestedMessage) Setd(value map[string]*CompoundMessage) {
+func (p *NestedMessage) Setd(value kiwi.LinkedMap) {
 	p._flags[0] |= 8
 	p._data_d = value
 }
@@ -1402,8 +1701,11 @@ func (p *NestedMessage) Encode(bb *kiwi.ByteBuffer) bool {
 	}
 	if p.Getd() != nil {
 		bb.WriteVarUint(4)
-		bb.WriteVarUint(uint32(len(p._data_d)))
-		for key, val := range p._data_d{
+		bb.WriteVarUint(uint32(p._data_d.Len()))
+		for it := p._data_d.Iter(); it.HasNext(); {
+			kif, vif := it.Next()
+			key := kif.(string)
+			val := vif.(*CompoundMessage)
 			bb.WriteString(key)
 			if !val.Encode(bb) {
 				return false
@@ -1418,11 +1720,16 @@ func (p *NestedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1454,7 +1761,7 @@ func (p *NestedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				if !ok {
 					return false
 				}
-				p.Setd(make(map[string]*CompoundMessage, count))
+				p.Setd(kiwi.NewLinkedMap(int(count)))
 				for j := uint32(0); j < count; j++ {
 					key, ok := bb.ReadString()
 					if !ok {
@@ -1470,7 +1777,7 @@ func (p *NestedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 					if !ok {
 						return false
 					}
-					p._data_d[key] = val
+					p._data_d.Set(key, val)
 				}
 				break
 			default:
@@ -1480,6 +1787,26 @@ func (p *NestedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 				break
 		}
 	}
+}
+
+func (p *NestedMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Geta() != nil {
+		printer.Print("a", p.Geta())
+	}
+	if p.Getb() != nil {
+		printer.Print("b", p.Getb())
+	}
+	if p.Getc() != nil {
+		printer.Print("c", p.Getc())
+	}
+	if p.Getd() != nil {
+		printer.Print("d", p.Getd())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *EnumArrayStruct) Getx() []Enum {
@@ -1530,6 +1857,22 @@ func (p *EnumArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 	return true
 }
 
+func (p *EnumArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *BoolArrayStruct) Getx() []bool {
 	if p._flags[0] & 1 > 0 {
 		return p._data_x
@@ -1570,6 +1913,22 @@ func (p *BoolArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 		}
 	}
 	return true
+}
+
+func (p *BoolArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *ByteArrayStruct) Getx() []byte {
@@ -1614,6 +1973,22 @@ func (p *ByteArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 	return true
 }
 
+func (p *ByteArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *IntArrayStruct) Getx() []int32 {
 	if p._flags[0] & 1 > 0 {
 		return p._data_x
@@ -1654,6 +2029,22 @@ func (p *IntArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool 
 		}
 	}
 	return true
+}
+
+func (p *IntArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *UintArrayStruct) Getx() []uint32 {
@@ -1698,6 +2089,22 @@ func (p *UintArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 	return true
 }
 
+func (p *UintArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *FloatArrayStruct) Getx() []float32 {
 	if p._flags[0] & 1 > 0 {
 		return p._data_x
@@ -1740,6 +2147,22 @@ func (p *FloatArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 	return true
 }
 
+func (p *FloatArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *StringArrayStruct) Getx() []string {
 	if p._flags[0] & 1 > 0 {
 		return p._data_x
@@ -1780,6 +2203,22 @@ func (p *StringArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bo
 		}
 	}
 	return true
+}
+
+func (p *StringArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *CompoundArrayStruct) Getx() []uint32 {
@@ -1855,6 +2294,30 @@ func (p *CompoundArrayStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) 
 	return true
 }
 
+func (p *CompoundArrayStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Gety() != nil {
+		printer.Field("y")
+		printer.StartArray()
+		for _, _it := range p._data_y{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *EnumArrayMessage) Getx() []Enum {
 	if p._flags[0] & 1 > 0 {
 		return p._data_x
@@ -1884,11 +2347,16 @@ func (p *EnumArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1920,6 +2388,22 @@ func (p *EnumArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 	}
 }
 
+func (p *EnumArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *BoolArrayMessage) Getx() []bool {
 	if p._flags[0] & 1 > 0 {
 		return p._data_x
@@ -1949,11 +2433,16 @@ func (p *BoolArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -1977,6 +2466,22 @@ func (p *BoolArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 				break
 		}
 	}
+}
+
+func (p *BoolArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *ByteArrayMessage) Getx() []byte {
@@ -2008,11 +2513,16 @@ func (p *ByteArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2036,6 +2546,22 @@ func (p *ByteArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 				break
 		}
 	}
+}
+
+func (p *ByteArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *IntArrayMessage) Getx() []int32 {
@@ -2067,11 +2593,16 @@ func (p *IntArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2095,6 +2626,22 @@ func (p *IntArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool
 				break
 		}
 	}
+}
+
+func (p *IntArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *UintArrayMessage) Getx() []uint32 {
@@ -2126,11 +2673,16 @@ func (p *UintArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2154,6 +2706,22 @@ func (p *UintArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 				break
 		}
 	}
+}
+
+func (p *UintArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *FloatArrayMessage) Getx() []float32 {
@@ -2185,11 +2753,16 @@ func (p *FloatArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bo
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2213,6 +2786,22 @@ func (p *FloatArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bo
 				break
 		}
 	}
+}
+
+func (p *FloatArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *StringArrayMessage) Getx() []string {
@@ -2244,11 +2833,16 @@ func (p *StringArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) b
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2272,6 +2866,22 @@ func (p *StringArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) b
 				break
 		}
 	}
+}
+
+func (p *StringArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *CompoundArrayMessage) Getx() []uint32 {
@@ -2323,11 +2933,16 @@ func (p *CompoundArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema)
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2366,7 +2981,34 @@ func (p *CompoundArrayMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema)
 	}
 }
 
+func (p *CompoundArrayMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Field("x")
+		printer.StartArray()
+		for _, _it := range p._data_x{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Gety() != nil {
+		printer.Field("y")
+		printer.StartArray()
+		for _, _it := range p._data_y{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *RecursiveMessage) Getx() *RecursiveMessage {
+	if p == nil {
+		return nil
+	}
 	return p._data_x
 }
 
@@ -2388,11 +3030,16 @@ func (p *RecursiveMessage) Encode(bb *kiwi.ByteBuffer) bool {
 func (p *RecursiveMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2414,6 +3061,17 @@ func (p *RecursiveMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) boo
 				break
 		}
 	}
+}
+
+func (p *RecursiveMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Getx() != nil {
+		printer.Print("x", p.Getx())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *NonDeprecatedMessage) Geta() *uint32 {
@@ -2467,6 +3125,9 @@ func (p *NonDeprecatedMessage) Setd(count uint32) []uint32 {
 }
 
 func (p *NonDeprecatedMessage) Gete() *ByteStruct {
+	if p == nil {
+		return nil
+	}
 	return p._data_e
 }
 
@@ -2475,6 +3136,9 @@ func (p *NonDeprecatedMessage) Sete(value *ByteStruct) {
 }
 
 func (p *NonDeprecatedMessage) Getf() *ByteStruct {
+	if p == nil {
+		return nil
+	}
 	return p._data_f
 }
 
@@ -2541,11 +3205,16 @@ func (p *NonDeprecatedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema)
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2624,6 +3293,45 @@ func (p *NonDeprecatedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema)
 	}
 }
 
+func (p *NonDeprecatedMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Geta() != nil {
+		printer.Print("a", p.Geta())
+	}
+	if p.Getb() != nil {
+		printer.Print("b", p.Getb())
+	}
+	if p.Getc() != nil {
+		printer.Field("c")
+		printer.StartArray()
+		for _, _it := range p._data_c{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Getd() != nil {
+		printer.Field("d")
+		printer.StartArray()
+		for _, _it := range p._data_d{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Gete() != nil {
+		printer.Print("e", p.Gete())
+	}
+	if p.Getf() != nil {
+		printer.Print("f", p.Getf())
+	}
+	if p.Getg() != nil {
+		printer.Print("g", p.Getg())
+	}
+	printer.EndObject()
+	return true;
+}
+
 func (p *DeprecatedMessage) Geta() *uint32 {
 	if p._flags[0] & 1 > 0 {
 		return &p._data_a
@@ -2650,6 +3358,9 @@ func (p *DeprecatedMessage) Setc(count uint32) []uint32 {
 }
 
 func (p *DeprecatedMessage) Gete() *ByteStruct {
+	if p == nil {
+		return nil
+	}
 	return p._data_e
 }
 
@@ -2699,11 +3410,16 @@ func (p *DeprecatedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bo
 	var count uint32
 	var ok bool
 	_ = ok
+	highest := uint32(0)
 	for {
 		typ, ok := bb.ReadVarUint()
 		if !ok {
 			return false
 		}
+		if typ < highest && typ > 0 {
+			return false
+		}
+		highest = typ
 		switch typ {
 			case 0:
 				return true
@@ -2777,6 +3493,31 @@ func (p *DeprecatedMessage) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bo
 				break
 		}
 	}
+}
+
+func (p *DeprecatedMessage) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Geta() != nil {
+		printer.Print("a", p.Geta())
+	}
+	if p.Getc() != nil {
+		printer.Field("c")
+		printer.StartArray()
+		for _, _it := range p._data_c{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Gete() != nil {
+		printer.Print("e", p.Gete())
+	}
+	if p.Getg() != nil {
+		printer.Print("g", p.Getg())
+	}
+	printer.EndObject()
+	return true;
 }
 
 func (p *SortedStruct) Geta1() *bool {
@@ -3214,5 +3955,97 @@ func (p *SortedStruct) Decode(bb *kiwi.ByteBuffer, schema *BinarySchema) bool {
 		}
 	}
 	return true
+}
+
+func (p *SortedStruct) Print(printer *kiwi.Printer) bool {
+	if p == nil { return true }
+	printer = printer.With(p)
+	printer.StartObject()
+	if p.Geta1() != nil {
+		printer.Print("a1", p.Geta1())
+	}
+	if p.Getb1() != nil {
+		printer.Print("b1", p.Getb1())
+	}
+	if p.Getc1() != nil {
+		printer.Print("c1", p.Getc1())
+	}
+	if p.Getd1() != nil {
+		printer.Print("d1", p.Getd1())
+	}
+	if p.Gete1() != nil {
+		printer.Print("e1", p.Gete1())
+	}
+	if p.Getf1() != nil {
+		printer.Print("f1", p.Getf1())
+	}
+	if p.Geta2() != nil {
+		printer.Print("a2", p.Geta2())
+	}
+	if p.Getb2() != nil {
+		printer.Print("b2", p.Getb2())
+	}
+	if p.Getc2() != nil {
+		printer.Print("c2", p.Getc2())
+	}
+	if p.Getd2() != nil {
+		printer.Print("d2", p.Getd2())
+	}
+	if p.Gete2() != nil {
+		printer.Print("e2", p.Gete2())
+	}
+	if p.Getf2() != nil {
+		printer.Print("f2", p.Getf2())
+	}
+	if p.Geta3() != nil {
+		printer.Field("a3")
+		printer.StartArray()
+		for _, _it := range p._data_a3{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Getb3() != nil {
+		printer.Field("b3")
+		printer.StartArray()
+		for _, _it := range p._data_b3{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Getc3() != nil {
+		printer.Field("c3")
+		printer.StartArray()
+		for _, _it := range p._data_c3{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Getd3() != nil {
+		printer.Field("d3")
+		printer.StartArray()
+		for _, _it := range p._data_d3{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Gete3() != nil {
+		printer.Field("e3")
+		printer.StartArray()
+		for _, _it := range p._data_e3{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	if p.Getf3() != nil {
+		printer.Field("f3")
+		printer.StartArray()
+		for _, _it := range p._data_f3{
+			printer.Print("", &_it)
+		}
+		printer.EndArray()
+	}
+	printer.EndObject()
+	return true;
 }
 
