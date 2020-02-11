@@ -41,6 +41,11 @@ struct NestedStruct {
   uint a;
   CompoundStruct b;
   uint c;
+  map<string, CompoundStruct> d;
+}
+
+message EnumMessage {
+  Enum x = 1;
 }
 
 message BoolMessage {
@@ -63,6 +68,10 @@ message FloatMessage {
   float x = 1;
 }
 
+message Float32ArrayMessage {
+  float32[] x = 1;
+}
+
 message StringMessage {
   string x = 1;
 }
@@ -72,10 +81,19 @@ message CompoundMessage {
   uint y = 2;
 }
 
+message MapMessage {
+  map<string, int> x = 1;
+}
+
 message NestedMessage {
   uint a = 1;
   CompoundMessage b = 2;
   uint c = 3;
+  map<string, CompoundMessage> d = 4;
+}
+
+struct EnumArrayStruct {
+  Enum[] x;
 }
 
 struct BoolArrayStruct {
@@ -105,6 +123,10 @@ struct StringArrayStruct {
 struct CompoundArrayStruct {
   uint[] x;
   uint[] y;
+}
+
+message EnumArrayMessage {
+  Enum[] x = 1;
 }
 
 message BoolArrayMessage {
