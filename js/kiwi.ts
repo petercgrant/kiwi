@@ -7,5 +7,5 @@ export { compileSchemaSkew } from "./skew";
 export { compileSchemaSkewTypes } from "./skew-types";
 export { compileSchemaTypeScript } from "./ts";
 export { decodeBinarySchema, encodeBinarySchema } from "./binary";
-export { parseSchema } from "./parser";
+export { parseSchema, nativeTypes } from "./parser";
 export { prettyPrintSchema } from "./printer";

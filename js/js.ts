@@ -1,29 +1,9 @@
-import { Schema, Definition } from "./schema";
+import { Schema, Definition, Field } from "./schema";
 import { ByteBuffer } from "./bb";
 import { error, quote } from "./util";
+import { nativeTypes } from "./parser";
 
-function compileDecode(definition: Definition, definitions: {[name: string]: Definition}): string {
-  let lines: string[] = [];
-  let indent = '  ';
-
-  lines.push('function(bb) {');
-  lines.push('  var result = {};');
-  lines.push('  if (!(bb instanceof this.ByteBuffer)) {');
-  lines.push('    bb = new this.ByteBuffer(bb);');
-  lines.push('  }');
-  lines.push('');
-
-  if (definition.kind === 'MESSAGE') {
-    lines.push('  while (true) {');
-    lines.push('    switch (bb.readVarUint()) {');
-    lines.push('    case 0:');
-    lines.push('      return result;');
-    lines.push('');
-    indent = '      ';
-  }
-
-  for (let i = 0; i < definition.fields.length; i++) {
-    let field = definition.fields[i];
+function decodeCodeForField(field: Field, definitions: {[name: string]: Definition}): string | string[] {
     let code: string;
 
     switch (field.type) {
@@ -47,7 +27,8 @@ function compileDecode(definition: Definition, definitions: {[name: string]: Def
         break;
       }
 
-      case 'float': {
+      case 'float':
+      case 'float32': {
         code = 'bb.readVarFloat()';
         break;
       }
@@ -57,42 +38,116 @@ function compileDecode(definition: Definition, definitions: {[name: string]: Def
         break;
       }
 
+      case 'map': {
+        let keyCode = decodeCodeForField({ type: field.mapKeyType, name: field.name + '.key', line: field.line, column: field.column, isArray: false, isMap: false, isDeprecated: field.isDeprecated, value: field.value, mapKeyType: null, mapValueType: null }, definitions);
+        if (!keyCode || nativeTypes.indexOf(field.mapKeyType as string) < 0) {
+          error(
+            'Invalid type ' +
+              quote(field.mapKeyType as string) +
+              ' for map key for ' +
+              quote(field.name) +
+              '.  Map keys must be native fields.',
+            field.line,
+            field.column
+          );
+        }
+        let mapValueField: Field = { type: field.mapValueType, name: field.name + '.value', line: field.line, column: field.column, isArray: false, isMap: false, isDeprecated: field.isDeprecated, value: field.value, mapKeyType: null, mapValueType: null };
+        let valueCode = decodeCodeForField(mapValueField, definitions);
+        if (!valueCode) {
+          error(
+            'Invalid type ' +
+              quote(field.mapValueType as string) +
+              ' for map value for ' +
+              quote(field.name),
+            field.line,
+            field.column
+          );
+        }
+        return [keyCode as string, valueCode as string];
+      }
+
       default: {
         let type = definitions[field.type!];
         if (!type) {
           error('Invalid type ' + quote(field.type!) + ' for field ' + quote(field.name), field.line, field.column);
         } else if (type.kind === 'ENUM') {
-          code = 'this[' + quote(type.name) + '][bb.readVarUint()]';
+          code = [
+            '(function (t) {',
+            '  var byte = bb.readVarUint();',
+            '  if (undefined == t[' + quote(type.name) + '][byte]) { throw new Error("Attempted to parse invalid enum"); }',
+            '  return t[' + quote(type.name) + '][byte]',
+            '})(this)',
+          ].join('\n');
         } else {
           code = 'this[' + quote('decode' + type.name) + '](bb)';
         }
       }
     }
+    return code;
+}
+
+function compileDecode(definition: Definition, definitions: {[name: string]: Definition}): string {
+  let lines: string[] = [];
+  let indent = '  ';
+
+  lines.push('function(bb) {');
+  lines.push('  var result = {};');
+  lines.push('  if (!(bb instanceof this.ByteBuffer)) {');
+  lines.push('    bb = new this.ByteBuffer(bb);');
+  lines.push('  }');
+  lines.push('');
+
+  if (definition.kind === 'MESSAGE') {
+    lines.push('  while (true) {');
+    lines.push('    switch (bb.readVarUint()) {');
+    lines.push('    case 0:');
+    lines.push('      return result;');
+    lines.push('');
+    indent = '      ';
+  }
+
+  for (let i = 0; i < definition.fields.length; i++) {
+    let field = definition.fields[i];
+    let code = decodeCodeForField(field, definitions);
 
     if (definition.kind === 'MESSAGE') {
       lines.push('    case ' + field.value + ':');
     }
-
     if (field.isArray) {
+      code = code as string;
       if (field.isDeprecated) {
         if (field.type === 'byte') {
           lines.push(indent + 'bb.readByteArray();');
         } else {
           lines.push(indent + 'var length = bb.readVarUint();');
-          lines.push(indent + 'while (length-- > 0) ' + code + ';');
+          lines.push(indent + 'while (length-- > 0) {' + code + '};');
         }
       } else {
         if (field.type === 'byte') {
           lines.push(indent + 'result[' + quote(field.name) + '] = bb.readByteArray();');
+        } else if (field.type === 'float32') {
+          lines.push(indent + 'var length = bb.readVarUint();');
+          lines.push(indent + 'var values = result[' + quote(field.name) + '] = new Float32Array(length);');
+          lines.push(indent + 'var c = 0;');
+          lines.push(indent + 'while (length-- > 0) { values[c] = (' + code + '); c++ }');
         } else {
           lines.push(indent + 'var length = bb.readVarUint();');
           lines.push(indent + 'var values = result[' + quote(field.name) + '] = [];');
-          lines.push(indent + 'while (length-- > 0) values.push(' + code + ');');
+          lines.push(indent + 'while (length-- > 0) { values.push(' + code + '); }');
         }
       }
-    }
-
-    else {
+    } else if (field.isMap) {
+        code = code as string[];
+        if (field.isDeprecated) {
+          lines.push(indent + 'var length = bb.readVarUint();');
+          lines.push(indent + 'while (length-- > 0) { ' + code[0] + ';' + code[1] + '; }');
+         } else {
+          lines.push(indent + 'var map = result[' + quote(field.name) + '] = {};');
+           lines.push(indent + 'var length = bb.readVarUint();');
+          lines.push(indent + 'while (length-- > 0) { map[' + code[0] + '] = ' + code[1] + '; }');
+         }
+    } else {
+      code = code as string;
       if (field.isDeprecated) {
         lines.push(indent + code + ';');
       } else {
@@ -122,20 +177,8 @@ function compileDecode(definition: Definition, definitions: {[name: string]: Def
   return lines.join('\n');
 }
 
-function compileEncode(definition: Definition, definitions: {[name: string]: Definition}): string {
-  let lines: string[] = [];
-
-  lines.push('function(message, bb) {');
-  lines.push('  var isTopLevel = !bb;');
-  lines.push('  if (isTopLevel) bb = new this.ByteBuffer();');
-
-  for (let j = 0; j < definition.fields.length; j++) {
-    let field = definition.fields[j];
+function encodeCodeForField(field: Field, definitions: {[name: string]: Definition}): string | string[] {
     let code: string;
-
-    if (field.isDeprecated) {
-      continue;
-    }
 
     switch (field.type) {
       case 'bool': {
@@ -158,7 +201,8 @@ function compileEncode(definition: Definition, definitions: {[name: string]: Def
         break;
       }
 
-      case 'float': {
+      case 'float':
+      case 'float32': {
         code = 'bb.writeVarFloat(value);';
         break;
       }
@@ -166,6 +210,34 @@ function compileEncode(definition: Definition, definitions: {[name: string]: Def
       case 'string': {
         code = 'bb.writeString(value);';
         break;
+      }
+
+      case 'map': {
+        let keyCode = encodeCodeForField({ type: field.mapKeyType, name: field.name + '.key', line: field.line, column: field.column, isArray: false, isMap: false, isDeprecated: field.isDeprecated, value: field.value, mapKeyType: null, mapValueType: null }, definitions);
+        if (!keyCode || nativeTypes.indexOf(field.mapKeyType as string) < 0) {
+          error(
+            'Invalid type ' +
+              quote(field.mapKeyType as string) +
+              ' for map key for ' +
+              quote(field.name) +
+              '.  Map keys must be native fields.',
+            field.line,
+            field.column
+          );
+         }
+        let mapValueField = { type: field.mapValueType, name: field.name + '.value', line: field.line, column: field.column, isArray: false, isMap: false, isDeprecated: field.isDeprecated, value: field.value, mapKeyType: null, mapValueType: null };
+        let valueCode = encodeCodeForField(mapValueField, definitions);
+        if (!valueCode) {
+          error(
+            'Invalid type ' +
+              quote(field.mapValueType as string) +
+              ' for map value for ' +
+              quote(field.name),
+            field.line,
+            field.column
+          );
+         }
+        return [keyCode as string, valueCode as string];
       }
 
       default: {
@@ -182,6 +254,24 @@ function compileEncode(definition: Definition, definitions: {[name: string]: Def
         }
       }
     }
+    return code
+}
+
+function compileEncode(definition: Definition, definitions: {[name: string]: Definition}): string {
+  let lines: string[] = [];
+
+  lines.push('function(message, bb) {');
+  lines.push('  var isTopLevel = !bb;');
+  lines.push('  if (isTopLevel) bb = new this.ByteBuffer();');
+
+  for (let j = 0; j < definition.fields.length; j++) {
+    let field = definition.fields[j];
+
+    if (field.isDeprecated) {
+      continue;
+    }
+
+    let code = encodeCodeForField(field, definitions);
 
     lines.push('');
     lines.push('  var value = message[' + quote(field.name) + '];');
@@ -202,9 +292,16 @@ function compileEncode(definition: Definition, definitions: {[name: string]: Def
         lines.push('      ' + code);
         lines.push('    }');
       }
-    }
-
-    else {
+    } else if (field.isMap) {
+        lines.push('    var obj = value, keys = Object.keys(obj), n = keys.length;');
+        lines.push('    bb.writeVarUint(n);');
+        lines.push('    for (var i = 0; i < keys.length; i++) {');
+        lines.push('      value = keys[i];');
+        lines.push('      ' + code[0]);
+        lines.push('      value = obj[keys[i]];');
+        lines.push('      ' + code[1]);
+        lines.push('    }');
+    } else {
       lines.push('    ' + code);
     }
 

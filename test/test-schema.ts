@@ -1,7 +1,8 @@
 export namespace test {
-  export type Enum =
-    "A" |
-    "B";
+  export enum Enum {
+    A = "A",
+    B = "B",
+  }
 
   export interface EnumStruct {
     x: Enum;
@@ -41,6 +42,11 @@ export namespace test {
     a: number;
     b: CompoundStruct;
     c: number;
+    d: { [key: string]: CompoundStruct };
+  }
+
+  export interface EnumMessage {
+    x?: Enum;
   }
 
   export interface BoolMessage {
@@ -63,6 +69,10 @@ export namespace test {
     x?: number;
   }
 
+  export interface Float32ArrayMessage {
+    x?: Float32Array;
+  }
+
   export interface StringMessage {
     x?: string;
   }
@@ -72,10 +82,19 @@ export namespace test {
     y?: number;
   }
 
+  export interface MapMessage {
+    x?: { [key: string]: number };
+  }
+
   export interface NestedMessage {
     a?: number;
     b?: CompoundMessage;
     c?: number;
+    d?: { [key: string]: CompoundMessage };
+  }
+
+  export interface EnumArrayStruct {
+    x: Enum[];
   }
 
   export interface BoolArrayStruct {
@@ -105,6 +124,10 @@ export namespace test {
   export interface CompoundArrayStruct {
     x: number[];
     y: number[];
+  }
+
+  export interface EnumArrayMessage {
+    x?: Enum[];
   }
 
   export interface BoolArrayMessage {
@@ -198,6 +221,8 @@ export namespace test {
     decodeCompoundStruct(buffer: Uint8Array): CompoundStruct;
     encodeNestedStruct(message: NestedStruct): Uint8Array;
     decodeNestedStruct(buffer: Uint8Array): NestedStruct;
+    encodeEnumMessage(message: EnumMessage): Uint8Array;
+    decodeEnumMessage(buffer: Uint8Array): EnumMessage;
     encodeBoolMessage(message: BoolMessage): Uint8Array;
     decodeBoolMessage(buffer: Uint8Array): BoolMessage;
     encodeByteMessage(message: ByteMessage): Uint8Array;
@@ -208,12 +233,18 @@ export namespace test {
     decodeUintMessage(buffer: Uint8Array): UintMessage;
     encodeFloatMessage(message: FloatMessage): Uint8Array;
     decodeFloatMessage(buffer: Uint8Array): FloatMessage;
+    encodeFloat32ArrayMessage(message: Float32ArrayMessage): Uint8Array;
+    decodeFloat32ArrayMessage(buffer: Uint8Array): Float32ArrayMessage;
     encodeStringMessage(message: StringMessage): Uint8Array;
     decodeStringMessage(buffer: Uint8Array): StringMessage;
     encodeCompoundMessage(message: CompoundMessage): Uint8Array;
     decodeCompoundMessage(buffer: Uint8Array): CompoundMessage;
+    encodeMapMessage(message: MapMessage): Uint8Array;
+    decodeMapMessage(buffer: Uint8Array): MapMessage;
     encodeNestedMessage(message: NestedMessage): Uint8Array;
     decodeNestedMessage(buffer: Uint8Array): NestedMessage;
+    encodeEnumArrayStruct(message: EnumArrayStruct): Uint8Array;
+    decodeEnumArrayStruct(buffer: Uint8Array): EnumArrayStruct;
     encodeBoolArrayStruct(message: BoolArrayStruct): Uint8Array;
     decodeBoolArrayStruct(buffer: Uint8Array): BoolArrayStruct;
     encodeByteArrayStruct(message: ByteArrayStruct): Uint8Array;
@@ -228,6 +259,8 @@ export namespace test {
     decodeStringArrayStruct(buffer: Uint8Array): StringArrayStruct;
     encodeCompoundArrayStruct(message: CompoundArrayStruct): Uint8Array;
     decodeCompoundArrayStruct(buffer: Uint8Array): CompoundArrayStruct;
+    encodeEnumArrayMessage(message: EnumArrayMessage): Uint8Array;
+    decodeEnumArrayMessage(buffer: Uint8Array): EnumArrayMessage;
     encodeBoolArrayMessage(message: BoolArrayMessage): Uint8Array;
     decodeBoolArrayMessage(buffer: Uint8Array): BoolArrayMessage;
     encodeByteArrayMessage(message: ByteArrayMessage): Uint8Array;

@@ -8,6 +8,8 @@ export let nativeTypes = [
   'int',
   'string',
   'uint',
+  'float32', // float32[] is a Float32Array in Javascript, float[] everywhere else
+  'map',
 ];
 
 // These are special names on the object returned by compileSchema()
@@ -16,7 +18,7 @@ export let reservedNames = [
   'package',
 ];
 
-let regex = /((?:-|\b)\d+\b|[=;{}]|\[\]|\[deprecated\]|\b[A-Za-z_][A-Za-z0-9_]*\b|\/\/.*|\s+)/g;
+let regex = /((?:-|\b)\d+\b|[=;{}]|\[\]|\<|\>|,|\[deprecated\]|\b[A-Za-z_][A-Za-z0-9_]*\b|\/\/.*|\s+)/g;
 let identifier = /^[A-Za-z_][A-Za-z0-9_]*$/;
 let whitespace = /^\/\/.*|\s+$/;
 let equals = /^=$/;
@@ -25,6 +27,9 @@ let semicolon = /^;$/;
 let integer = /^-?\d+$/;
 let leftBrace = /^\{$/;
 let rightBrace = /^\}$/;
+let lessThan = /^\<$/;
+let greaterThan = /^\>$/;
+let comma = /^,$/;
 let arrayToken = /^\[\]$/;
 let enumKeyword = /^enum$/;
 let structKeyword = /^struct$/;
@@ -133,6 +138,9 @@ function parse(tokens: Token[]): Schema {
     while (!eat(rightBrace)) {
       let type: string | null = null;
       let isArray = false;
+      let isMap = false;
+      let mapKeyType: string | null = null;
+      let mapValueType: string | null = null;
       let isDeprecated = false;
 
       // Enums don't have types
@@ -140,6 +148,19 @@ function parse(tokens: Token[]): Schema {
         type = current().text;
         expect(identifier, 'identifier');
         isArray = eat(arrayToken);
+        if (type === 'map') {
+          isMap = true;
+          expect(lessThan, '<');
+          eat(lessThan);
+          mapKeyType = current().text;
+          eat(identifier);
+          expect(comma, ',');
+          eat(comma);
+          mapValueType = current().text;
+          eat(identifier);
+          expect(greaterThan, '<');
+          eat(greaterThan);
+        }
       }
 
       let field = current();
@@ -174,7 +195,10 @@ function parse(tokens: Token[]): Schema {
         column: field.column,
         type: type,
         isArray: isArray,
+        isMap: isMap,
         isDeprecated: isDeprecated,
+        mapKeyType: mapKeyType,
+        mapValueType: mapValueType,
         value: value !== null ? +value.text | 0 : fields.length + 1,
       });
     }

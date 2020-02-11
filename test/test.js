@@ -124,9 +124,23 @@ it('struct nested', function() {
     assert.deepEqual(schema.decodeNestedStruct(new Uint8Array(o)), i);
   }
 
-  check({a: 0, b: {x: 0, y: 0}, c: 0}, [0, 0, 0, 0]);
-  check({a: 1, b: {x: 2, y: 3}, c: 4}, [1, 2, 3, 4]);
-  check({a: 534, b: {x: 12345, y: 54321}, c: 321}, [150, 4, 185, 96, 177, 168, 3, 193, 2]);
+  check({a: 0, b: {x: 0, y: 0}, c: 0, d: {'abc': {x: 1, y: 2}}}, [0, 0, 0, 0, 1, 97, 98, 99, 0, 1, 2]);
+  check({a: 1, b: {x: 2, y: 3}, c: 4, d: {}}, [1, 2, 3, 4, 0]);
+  check({a: 534, b: {x: 12345, y: 54321}, c: 321, d: {}}, [150, 4, 185, 96, 177, 168, 3, 193, 2, 0]);
+});
+
+it('message enum', function () {
+  function check(i, o) {
+    assert.deepEqual(Buffer(schema.encodeEnumMessage(i)), Buffer(o));
+    assert.deepEqual(schema.decodeEnumMessage(new Uint8Array(o)), i);
+  }
+
+  check({}, [0]);
+  check({ x: 'A' }, [1, 100, 0]);
+
+  assert.throws(function () {
+    schema.decodeEnumMessage(new Uint8Array([1, 300, 0]));
+  }, Error)
 });
 
 it('message bool', function() {
@@ -201,6 +215,16 @@ it('message string', function() {
   check({x: '🙉🙈🙊'}, [1, 240, 159, 153, 137, 240, 159, 153, 136, 240, 159, 153, 138, 0, 0]);
 });
 
+it('message map', function () {
+  function check(i, o) {
+    assert.deepEqual(Buffer(schema.encodeMapMessage(i)), Buffer(o));
+    assert.deepEqual(schema.decodeMapMessage(new Uint8Array(o)), i);
+  }
+
+  check({}, [0]);
+  check({ x: { 'abc': 5, 'def': 10 } }, [1, 2, 97, 98, 99, 0, 10, 100, 101, 102, 0, 20, 0]);
+});
+
 it('message compound', function() {
   function check(i, o) {
     assert.deepEqual(Buffer(schema.encodeCompoundMessage(i)), Buffer(o));
@@ -224,7 +248,28 @@ it('message nested', function() {
   check({a: 123, c: 234}, [1, 123, 3, 234, 1, 0]);
   check({b: {x: 5, y: 6}}, [2, 1, 5, 2, 6, 0, 0]);
   check({b: {x: 5}, c: 123}, [2, 1, 5, 0, 3, 123, 0]);
-  check({c: 123, b: {x: 5, y: 6}, a: 234}, [1, 234, 1, 2, 1, 5, 2, 6, 0, 3, 123, 0]);
+  check({c: 123, b: {x: 5, y: 6}, a: 234, d: {'a': {x: 1, y: 2}}}, [1, 234, 1, 2, 1, 5, 2, 6, 0, 3, 123, 4, 1, 97, 0, 1, 1, 2, 2, 0, 0]);
+});
+
+it('struct enum array', function () {
+  function check(i, o) {
+    assert.deepEqual(Buffer(schema.encodeEnumArrayStruct({ x: i })), Buffer(o));
+    assert.deepEqual(schema.decodeEnumArrayStruct(new Uint8Array(o)), { x: i });
+  }
+
+  check([], [0]);
+  check(['B', 'A'], [2, 200, 1, 100]);
+});
+
+it('message enum array', function () {
+  function check(i, o) {
+    assert.deepEqual(Buffer(schema.encodeEnumArrayMessage(i)), Buffer(o));
+    assert.deepEqual(schema.decodeEnumArrayMessage(new Uint8Array(o)), i);
+  }
+
+  check({}, [0]);
+  check({ x: [] }, [1, 0, 0]);
+  check({ x: ['B', 'A'] }, [1, 2, 200, 1, 100, 0]);
 });
 
 it('struct bool array', function() {

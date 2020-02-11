@@ -20,6 +20,8 @@ export function prettyPrintSchema(schema: Schema): string {
         text += field.type;
         if (field.isArray) {
           text += '[]';
+        } else if (field.isMap) {
+          text += '<' + field.mapKeyType as string + ', ' + field.mapValueType as string + '>';
         }
         text += ' ';
       }

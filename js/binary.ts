@@ -1,7 +1,7 @@
 import { ByteBuffer } from "./bb";
 import { Schema, Field, Definition, DefinitionKind } from "./schema";
 
-let types: (string | null)[] = ['bool', 'byte', 'int', 'uint', 'float', 'string'];
+let types: (string | null)[] = ['bool', 'byte', 'int', 'uint', 'float', 'string', 'float32'];
 let kinds: DefinitionKind[] = ['ENUM', 'STRUCT', 'MESSAGE'];
 
 export function decodeBinarySchema(buffer: Uint8Array | ByteBuffer): Schema {
@@ -19,17 +19,28 @@ export function decodeBinarySchema(buffer: Uint8Array | ByteBuffer): Schema {
     for (let j = 0; j < fieldCount; j++) {
       let fieldName = bb.readString();
       let type = bb.readVarInt();
-      let isArray = !!(bb.readByte() & 1);
+      let flags = bb.readByte();
+      let isArray = !!(flags & 1);
+      let isMap = !!(flags & 2);
       let value = bb.readVarUint();
-
+      let mapKeyType: string | null = null;
+      let mapValueType: string | null = null;
+      if (isMap) {
+        mapKeyType = type as any;
+        type = null as any;
+        mapValueType = bb.readVarInt() as any;
+      }
       fields.push({
         name: fieldName,
         line: 0,
         column: 0,
-        type: kinds[kind] === 'ENUM' ? null : type as any,
+        type: (kinds[kind] === 'ENUM' || isMap) ? null : type as any,
         isArray: isArray,
+        isMap: isMap,
         isDeprecated: false,
         value: value,
+        mapKeyType: mapKeyType as any,
+        mapValueType: mapValueType as any,
       });
     }
 
@@ -47,20 +58,12 @@ export function decodeBinarySchema(buffer: Uint8Array | ByteBuffer): Schema {
     let fields = definitions[i].fields;
     for (let j = 0; j < fields.length; j++) {
       let field = fields[j];
-      let type = field.type as any as number | null;
-
-      if (type !== null && type < 0) {
-        if (~type >= types.length) {
-          throw new Error('Invalid type ' + type);
-        }
-        field.type = types[~type];
-      }
-
-      else {
-        if (type !== null && type >= definitions.length) {
-          throw new Error('Invalid type ' + type);
-        }
-        field.type = type === null ? null : definitions[type].name;
+      if (field.isMap) {
+        field.type = 'map'
+        field.mapKeyType = bind(field.mapKeyType as number | null, definitions)
+        field.mapValueType = bind(field.mapValueType as number | null, definitions)
+      } else {
+        field.type = bind(field.type as number | null, definitions)
       }
     }
   }
@@ -69,6 +72,20 @@ export function decodeBinarySchema(buffer: Uint8Array | ByteBuffer): Schema {
     package: null,
     definitions: definitions,
   };
+}
+
+export function bind(type: number | null, definitions: Definition[]): string | null {
+  if (type !== null && type < 0) {
+    if (~type >= types.length) {
+      throw new Error('Invalid type ' + type);
+    }
+    return types[~type];
+  }
+
+  if (type !== null && type >= definitions.length) {
+    throw new Error('Invalid type ' + type);
+  }
+  return type === null ? null : definitions[type].name;
 }
 
 export function encodeBinarySchema(schema: Schema): Uint8Array {
@@ -91,12 +108,21 @@ export function encodeBinarySchema(schema: Schema): Uint8Array {
 
     for (let j = 0; j < definition.fields.length; j++) {
       let field = definition.fields[j];
-      let type = types.indexOf(field.type);
 
       bb.writeString(field.name);
-      bb.writeVarInt(type === -1 ? definitionIndex[field.type!] : ~type);
-      bb.writeByte(field.isArray ? 1 : 0);
+      if (field.isMap) {
+        let type = types.indexOf(field.mapKeyType);
+        bb.writeVarInt(type === -1 ? definitionIndex[field.mapKeyType!] : ~type);
+      } else {
+        let type = types.indexOf(field.type);
+        bb.writeVarInt(type === -1 ? definitionIndex[field.type!] : ~type);
+      }
+      bb.writeByte((field.isArray ? 1 : 0) | (field.isMap ? 2 : 0));
       bb.writeVarUint(field.value);
+      if (field.isMap) {
+        let type = types.indexOf(field.mapValueType);
+        bb.writeVarInt(type === -1 ? definitionIndex[field.mapValueType!] : ~type);
+      }
     }
   }
 

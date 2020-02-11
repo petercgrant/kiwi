@@ -1,5 +1,36 @@
-import { Schema } from "./schema";
+import { Field, Schema } from "./schema";
 import { error, quote } from "./util";
+
+function tsTypeForField(field: Field): string {
+  let type: string;
+  switch (field.type) {
+    case 'bool':
+      type = 'boolean';
+      break;
+    case 'byte':
+    case 'int':
+    case 'uint':
+    case 'float':
+      type = 'number';
+      break;
+    case 'float32':
+      type = 'Float32Array';
+      field.isArray = false;
+      break;
+    case 'map':
+      var keyType = tsTypeForField({ type: field.mapKeyType, name: field.name + '.key', line: field.line, column: field.column, isArray: false, isMap: false, isDeprecated: field.isDeprecated, value: field.value, mapKeyType: null, mapValueType: null });
+      var valueType = tsTypeForField({ type: field.mapValueType, name: field.name + '.value', line: field.line, column: field.column, isArray: false, isMap: false, isDeprecated: field.isDeprecated, value: field.value, mapKeyType: null, mapValueType: null });
+      type = '{ [key: ' + keyType + ']: ' + valueType + ' }'
+      break;
+    default:
+      type = field.type as string;
+      break;
+  }
+
+  if (field.type === 'byte' && field.isArray) type = 'Uint8Array';
+  else if (field.isArray) type += '[]';
+  return type;
+}
 
 export function compileSchemaTypeScript(schema: Schema): string {
   var indent = '';
@@ -14,18 +45,15 @@ export function compileSchemaTypeScript(schema: Schema): string {
     var definition = schema.definitions[i];
 
     if (definition.kind === 'ENUM') {
-      lines.push(indent + 'export type ' + definition.name + ' =');
+      lines.push(indent + 'export enum ' + definition.name + ' {');
 
       for (var j = 0; j < definition.fields.length; j++) {
-        lines.push(indent + '  ' + JSON.stringify(definition.fields[j].name) + (j + 1 < definition.fields.length ? ' |' : ';'));
+        lines.push(indent + '  ' + definition.fields[j].name + ' = ' + JSON.stringify(definition.fields[j].name) + ',');
       }
 
-      if (!definition.fields.length) {
-        lines.push(indent + '  any;');
-      }
-
-      lines.push('');
-    }
+      lines.push(indent + '}');
+      lines.push('')
+}
   }
 
   for (var i = 0; i < schema.definitions.length; i++) {
@@ -36,20 +64,12 @@ export function compileSchemaTypeScript(schema: Schema): string {
 
       for (var j = 0; j < definition.fields.length; j++) {
         var field = definition.fields[j];
-        var type;
 
         if (field.isDeprecated) {
           continue;
         }
 
-        switch (field.type) {
-          case 'bool': type = 'boolean'; break;
-          case 'byte': case 'int': case 'uint': case 'float': type = 'number'; break;
-          default: type = field.type; break;
-        }
-
-        if (field.type === 'byte' && field.isArray) type = 'Uint8Array';
-        else if (field.isArray) type += '[]';
+        let type = tsTypeForField(field);
 
         lines.push(indent + '  ' + field.name + (definition.kind === 'MESSAGE' ? '?' : '') + ': ' + type + ';');
       }

@@ -19,6 +19,9 @@ export interface Field {
   column: number;
   type: string | null;
   isArray: boolean;
+  isMap: boolean;
   isDeprecated: boolean;
+  mapKeyType: string | null;
+  mapValueType: string | null;
   value: number;
 }
