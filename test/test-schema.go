@@ -37,240 +37,240 @@ const (
 
 
 type EnumStruct struct {
-	_flags [1]uint32
-	_data_x Enum
-	_data_y []Enum
+	_flags [1]uint32 `spew:"-"`
+	_data_x Enum`spew:"x"`
+	_data_y []Enum`spew:"y"`
 }
 
 type BoolStruct struct {
-	_flags [1]uint32
-	_data_x bool
+	_flags [1]uint32 `spew:"-"`
+	_data_x bool`spew:"x"`
 }
 
 type ByteStruct struct {
-	_flags [1]uint32
-	_data_x byte
+	_flags [1]uint32 `spew:"-"`
+	_data_x byte`spew:"x"`
 }
 
 type IntStruct struct {
-	_flags [1]uint32
-	_data_x int32
+	_flags [1]uint32 `spew:"-"`
+	_data_x int32`spew:"x"`
 }
 
 type UintStruct struct {
-	_flags [1]uint32
-	_data_x uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x uint32`spew:"x"`
 }
 
 type FloatStruct struct {
-	_flags [1]uint32
-	_data_x float32
+	_flags [1]uint32 `spew:"-"`
+	_data_x float32`spew:"x"`
 }
 
 type StringStruct struct {
-	_flags [1]uint32
-	_data_x string
+	_flags [1]uint32 `spew:"-"`
+	_data_x string`spew:"x"`
 }
 
 type CompoundStruct struct {
-	_flags [1]uint32
-	_data_x uint32
-	_data_y uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x uint32`spew:"x"`
+	_data_y uint32`spew:"y"`
 }
 
 type NestedStruct struct {
-	_flags [1]uint32
-	_data_b *CompoundStruct
-	_data_d kiwi.LinkedMap
-	_data_a uint32
-	_data_c uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_b *CompoundStruct`spew:"b"`
+	_data_d kiwi.LinkedMap`spew:"d"`
+	_data_a uint32`spew:"a"`
+	_data_c uint32`spew:"c"`
 }
 
 type EnumMessage struct {
-	_flags [1]uint32
-	_data_x Enum
+	_flags [1]uint32 `spew:"-"`
+	_data_x Enum`spew:"x"`
 }
 
 type BoolMessage struct {
-	_flags [1]uint32
-	_data_x bool
+	_flags [1]uint32 `spew:"-"`
+	_data_x bool`spew:"x"`
 }
 
 type ByteMessage struct {
-	_flags [1]uint32
-	_data_x byte
+	_flags [1]uint32 `spew:"-"`
+	_data_x byte`spew:"x"`
 }
 
 type IntMessage struct {
-	_flags [1]uint32
-	_data_x int32
+	_flags [1]uint32 `spew:"-"`
+	_data_x int32`spew:"x"`
 }
 
 type UintMessage struct {
-	_flags [1]uint32
-	_data_x uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x uint32`spew:"x"`
 }
 
 type FloatMessage struct {
-	_flags [1]uint32
-	_data_x float32
+	_flags [1]uint32 `spew:"-"`
+	_data_x float32`spew:"x"`
 }
 
 type Float32ArrayMessage struct {
-	_flags [1]uint32
-	_data_x []float32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []float32`spew:"x"`
 }
 
 type StringMessage struct {
-	_flags [1]uint32
-	_data_x string
+	_flags [1]uint32 `spew:"-"`
+	_data_x string`spew:"x"`
 }
 
 type CompoundMessage struct {
-	_flags [1]uint32
-	_data_x uint32
-	_data_y uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x uint32`spew:"x"`
+	_data_y uint32`spew:"y"`
 }
 
 type MapMessage struct {
-	_flags [1]uint32
-	_data_x kiwi.LinkedMap
+	_flags [1]uint32 `spew:"-"`
+	_data_x kiwi.LinkedMap`spew:"x"`
 }
 
 type NestedMessage struct {
-	_flags [1]uint32
-	_data_b *CompoundMessage
-	_data_d kiwi.LinkedMap
-	_data_a uint32
-	_data_c uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_b *CompoundMessage`spew:"b"`
+	_data_d kiwi.LinkedMap`spew:"d"`
+	_data_a uint32`spew:"a"`
+	_data_c uint32`spew:"c"`
 }
 
 type EnumArrayStruct struct {
-	_flags [1]uint32
-	_data_x []Enum
+	_flags [1]uint32 `spew:"-"`
+	_data_x []Enum`spew:"x"`
 }
 
 type BoolArrayStruct struct {
-	_flags [1]uint32
-	_data_x []bool
+	_flags [1]uint32 `spew:"-"`
+	_data_x []bool`spew:"x"`
 }
 
 type ByteArrayStruct struct {
-	_flags [1]uint32
-	_data_x []byte
+	_flags [1]uint32 `spew:"-"`
+	_data_x []byte`spew:"x"`
 }
 
 type IntArrayStruct struct {
-	_flags [1]uint32
-	_data_x []int32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []int32`spew:"x"`
 }
 
 type UintArrayStruct struct {
-	_flags [1]uint32
-	_data_x []uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []uint32`spew:"x"`
 }
 
 type FloatArrayStruct struct {
-	_flags [1]uint32
-	_data_x []float32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []float32`spew:"x"`
 }
 
 type StringArrayStruct struct {
-	_flags [1]uint32
-	_data_x []string
+	_flags [1]uint32 `spew:"-"`
+	_data_x []string`spew:"x"`
 }
 
 type CompoundArrayStruct struct {
-	_flags [1]uint32
-	_data_x []uint32
-	_data_y []uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []uint32`spew:"x"`
+	_data_y []uint32`spew:"y"`
 }
 
 type EnumArrayMessage struct {
-	_flags [1]uint32
-	_data_x []Enum
+	_flags [1]uint32 `spew:"-"`
+	_data_x []Enum`spew:"x"`
 }
 
 type BoolArrayMessage struct {
-	_flags [1]uint32
-	_data_x []bool
+	_flags [1]uint32 `spew:"-"`
+	_data_x []bool`spew:"x"`
 }
 
 type ByteArrayMessage struct {
-	_flags [1]uint32
-	_data_x []byte
+	_flags [1]uint32 `spew:"-"`
+	_data_x []byte`spew:"x"`
 }
 
 type IntArrayMessage struct {
-	_flags [1]uint32
-	_data_x []int32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []int32`spew:"x"`
 }
 
 type UintArrayMessage struct {
-	_flags [1]uint32
-	_data_x []uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []uint32`spew:"x"`
 }
 
 type FloatArrayMessage struct {
-	_flags [1]uint32
-	_data_x []float32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []float32`spew:"x"`
 }
 
 type StringArrayMessage struct {
-	_flags [1]uint32
-	_data_x []string
+	_flags [1]uint32 `spew:"-"`
+	_data_x []string`spew:"x"`
 }
 
 type CompoundArrayMessage struct {
-	_flags [1]uint32
-	_data_x []uint32
-	_data_y []uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_x []uint32`spew:"x"`
+	_data_y []uint32`spew:"y"`
 }
 
 type RecursiveMessage struct {
-	_flags [1]uint32
-	_data_x *RecursiveMessage
+	_flags [1]uint32 `spew:"-"`
+	_data_x *RecursiveMessage`spew:"x"`
 }
 
 type NonDeprecatedMessage struct {
-	_flags [1]uint32
-	_data_c []uint32
-	_data_d []uint32
-	_data_e *ByteStruct
-	_data_f *ByteStruct
-	_data_a uint32
-	_data_b uint32
-	_data_g uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_c []uint32`spew:"c"`
+	_data_d []uint32`spew:"d"`
+	_data_e *ByteStruct`spew:"e"`
+	_data_f *ByteStruct`spew:"f"`
+	_data_a uint32`spew:"a"`
+	_data_b uint32`spew:"b"`
+	_data_g uint32`spew:"g"`
 }
 
 type DeprecatedMessage struct {
-	_flags [1]uint32
-	_data_c []uint32
-	_data_e *ByteStruct
-	_data_a uint32
-	_data_g uint32
+	_flags [1]uint32 `spew:"-"`
+	_data_c []uint32`spew:"c"`
+	_data_e *ByteStruct`spew:"e"`
+	_data_a uint32`spew:"a"`
+	_data_g uint32`spew:"g"`
 }
 
 type SortedStruct struct {
-	_flags [1]uint32
-	_data_f1 string
-	_data_f2 string
-	_data_a3 []bool
-	_data_b3 []byte
-	_data_c3 []int32
-	_data_d3 []uint32
-	_data_e3 []float32
-	_data_f3 []string
-	_data_c1 int32
-	_data_d1 uint32
-	_data_e1 float32
-	_data_c2 int32
-	_data_d2 uint32
-	_data_e2 float32
-	_data_a1 bool
-	_data_b1 byte
-	_data_a2 bool
-	_data_b2 byte
+	_flags [1]uint32 `spew:"-"`
+	_data_f1 string`spew:"f1"`
+	_data_f2 string`spew:"f2"`
+	_data_a3 []bool`spew:"a3"`
+	_data_b3 []byte`spew:"b3"`
+	_data_c3 []int32`spew:"c3"`
+	_data_d3 []uint32`spew:"d3"`
+	_data_e3 []float32`spew:"e3"`
+	_data_f3 []string`spew:"f3"`
+	_data_c1 int32`spew:"c1"`
+	_data_d1 uint32`spew:"d1"`
+	_data_e1 float32`spew:"e1"`
+	_data_c2 int32`spew:"c2"`
+	_data_d2 uint32`spew:"d2"`
+	_data_e2 float32`spew:"e2"`
+	_data_a1 bool`spew:"a1"`
+	_data_b1 byte`spew:"b1"`
+	_data_a2 bool`spew:"a2"`
+	_data_b2 byte`spew:"b2"`
 }
 
 

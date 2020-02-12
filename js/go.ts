@@ -352,7 +352,7 @@ export function compileSchemaGo(schema: Schema): string {
 
       else if (pass === 1) {
         go.push('type ' + definition.name + ' struct {');
-        go.push('\t_flags [' + (fields.length + 31 >> 5) + ']uint32');
+        go.push('\t_flags [' + (fields.length + 31 >> 5) + ']uint32 `spew:"-"`');
 
         // Sort fields by size since that makes the resulting struct smaller
         let sizes: {[name: string]: number} = {'bool': 1, 'byte': 1, 'int': 4, 'uint': 4, 'float': 4, 'float32': 4};
@@ -374,9 +374,9 @@ export function compileSchemaGo(schema: Schema): string {
           var type = goType(definitions, field, field.isArray);
 
           if (goIsFieldPointer(definitions, field)) {
-            go.push('\t' + name + ' *' + type);
+            go.push('\t' + name + ' *' + type + '`spew:"' + field.name + '"`');
           } else {
-            go.push('\t' + name + ' ' + type);
+            go.push('\t' + name + ' ' + type + '`spew:"' + field.name + '"`');
           }
         }
 
