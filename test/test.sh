@@ -1,6 +1,8 @@
 #!/bin/sh
 
-set -e
+set -eo pipefail
+
+bash -c 'set -eo pipefail; cd ../js; npm run build'
 
 node ../js/node_modules/mocha/bin/mocha ./test.js
 
@@ -9,6 +11,8 @@ node ../js/cli.js --schema ./test-schema.kiwi --js ./test-schema.js
 node ../js/cli.js --schema ./test-schema.kiwi --ts ./test-schema.ts
 
 node ../js/cli.js --schema ./test-schema.kiwi --go ./test-schema.go
+
+node ../js/cli.js --schema ./test-schema.kiwi --callback-java ./Schema.java --package main
 
 #node ../js/cli.js --schema ./test-schema.kiwi --cpp ./test-schema.h
 #node ../js/cli.js --schema ./test1-schema.kiwi --cpp ./test1-schema.h --binary ./test1-schema.bkiwi

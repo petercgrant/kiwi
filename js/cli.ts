@@ -7,12 +7,14 @@ import { Schema } from './schema';
 import { compileSchemaCPP } from './cpp';
 import { compileSchemaCallbackCPP } from './cpp-callback';
 import { compileSchemaGo } from './go';
+import { compileSchemaCallbackJava } from './java-callback';
 import { compileSchemaSkew } from './skew';
 import { encodeBinarySchema, decodeBinarySchema } from './binary';
 import { prettyPrintSchema } from './printer';
 import { parseSchema } from './parser';
 import { ByteBuffer } from './bb';
 import { compileSchemaSkewTypes } from './skew-types';
+import { Options } from './options';
 
 let usage = [
   '',
@@ -20,20 +22,23 @@ let usage = [
   '',
   'Options:',
   '',
-  '  --help                Print this message.',
-  '  --schema [PATH]       The schema file to use.',
-  '  --js [PATH]           Generate JavaScript code.',
-  '  --ts [PATH]           Generate TypeScript type definitions.',
-  '  --cpp [PATH]          Generate C++ code (tree style).',
-  '  --callback-cpp [PATH] Generate C++ code (callback style).',
-  '  --skew [PATH]         Generate Skew code.',
-  '  --go [PATH]           Generate Go code (tree style).',
-  '  --skew-types [PATH]   Generate Skew type definitions.',
-  '  --text [PATH]         Encode the schema as text.',
-  '  --binary [PATH]       Encode the schema as a binary blob.',
-  '  --root-type [NAME]    Set the root type for JSON.',
-  '  --to-json [PATH]      Convert a binary file to JSON.',
-  '  --from-json [PATH]    Convert a JSON file to binary.',
+  '  --help                 Print this message.',
+  '  --schema [PATH]        The schema file to use.',
+  '  --js [PATH]            Generate JavaScript code.',
+  '  --ts [PATH]            Generate TypeScript type definitions.',
+  '  --cpp [PATH]           Generate C++ code (tree style).',
+  '  --callback-cpp [PATH]  Generate C++ code (callback style).',
+  '  --skew [PATH]          Generate Skew code.',
+  '  --go [PATH]            Generate Go code (tree style).',
+  '  --callback-java [PATH] Generate Java code (callback style).',
+  '  --skew-types [PATH]    Generate Skew type definitions.',
+  '  --text [PATH]          Encode the schema as text.',
+  '  --binary [PATH]        Encode the schema as a binary blob.',
+  '  --root-type [NAME]     Set the root type for JSON.',
+  '  --to-json [PATH]       Convert a binary file to JSON.',
+  '  --from-json [PATH]     Convert a JSON file to binary.',
+  '  --package [NAME]       Set the package name.',
+  '  --runtime [NAME]       Set the kiwi runtime location.',
   '',
   'Examples:',
   '',
@@ -76,12 +81,15 @@ export function main(args: string[]): number {
     '--callback-cpp': null,
     '--skew': null,
     '--go': null,
+    '--callback-java': null,
     '--skew-types': null,
     '--binary': null,
     '--text': null,
     '--root-type': null,
     '--to-json': null,
     '--from-json': null,
+    '--package': null,
+    '--runtime': null,
   };
 
   // Parse flags
@@ -136,6 +144,16 @@ export function main(args: string[]): number {
     throw new Error('Invalid root type: ' + JSON.stringify(rootType));
   }
 
+  // Override package
+  if (flags['--package'] !== null) {
+      parsed.package = flags['--package'];
+  }
+
+  let options: Options = {};
+  if (flags['--runtime'] !== null) {
+      options.runtime = flags['--runtime'];
+  }
+
   // Generate JavaScript code
   if (flags['--js'] !== null) {
     writeFileString(flags['--js'], compileSchemaJS(parsed));
@@ -165,6 +183,11 @@ export function main(args: string[]): number {
   // Generate Go code
   if (flags['--go'] !== null) {
     writeFileString(flags['--go'], compileSchemaGo(parsed));
+  }
+
+  // Generate Java code
+  if (flags['--callback-java'] !== null) {
+    writeFileString(flags['--callback-java'], compileSchemaCallbackJava(parsed, options));
   }
 
   // Generate a binary schema file
