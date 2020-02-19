@@ -321,7 +321,15 @@ function emitReadField(
     java.push(indent + "visitor.startMap(" + count + ".intValue());");
     java.push(indent + "for (long j = 0; j < " + count + "; j++) {");
     java.push(indent + "  " + "visitor.startMapEntry();");
-    java.push(indent + "  " + "visitor.startMapKey();");
+    let keyFieldName =
+      definition.name.toUpperCase() +
+      "_" +
+      field.name.toUpperCase() +
+      "_MAP_KEY";
+
+    java.push(
+      indent + "  " + "visitor.startField(Field." + keyFieldName + ");"
+    );
     let keyField = {
       type: field.mapKeyType,
       name: field.name + ".key",
@@ -340,8 +348,16 @@ function emitReadField(
     java.push(
       indent + "  " + visitField(definitions, definition, keyField, "key")
     );
-    java.push(indent + "  " + "visitor.endMapKey();");
-    java.push(indent + "  " + "visitor.startMapValue();");
+    java.push(indent + "  " + "visitor.endField(Field." + keyFieldName + ");");
+    let valueFieldName =
+      definition.name.toUpperCase() +
+      "_" +
+      field.name.toUpperCase() +
+      "_MAP_VALUE";
+
+    java.push(
+      indent + "  " + "visitor.startField(Field." + valueFieldName + ");"
+    );
     let valueField = {
       type: field.mapValueType,
       name: field.name + ".value",
@@ -360,7 +376,9 @@ function emitReadField(
     java.push(
       indent + "  " + visitField(definitions, definition, valueField, "value")
     );
-    java.push(indent + "  " + "visitor.endMapValue();");
+    java.push(
+      indent + "  " + "visitor.endField(Field." + valueFieldName + ");"
+    );
     java.push(indent + "  " + "visitor.endMapEntry();");
     java.push(indent + "}");
     java.push(indent + "visitor.endMap(" + count + ".intValue());");
@@ -498,7 +516,28 @@ export function compileSchemaCallbackJava(
       schema.definitions
         .filter(d => d.kind === "MESSAGE" || d.kind === "STRUCT")
         .map(d =>
-          d.fields.map(f => d.name.toUpperCase() + "_" + f.name.toUpperCase())
+          d.fields
+            .map(f => d.name.toUpperCase() + "_" + f.name.toUpperCase())
+            .concat(
+              d.fields
+                .filter(f => f.isMap)
+                .map(
+                  f =>
+                    d.name.toUpperCase() +
+                    "_" +
+                    f.name.toUpperCase() +
+                    "_MAP_KEY"
+                ),
+              d.fields
+                .filter(f => f.isMap)
+                .map(
+                  f =>
+                    d.name.toUpperCase() +
+                    "_" +
+                    f.name.toUpperCase() +
+                    "_MAP_VALUE"
+                )
+            )
         )
         .reduce((acc, f) => acc.concat(f), [])
         .map((f, j) => ({ name: f, value: j + 1 })),
@@ -526,14 +565,6 @@ export function compileSchemaCallbackJava(
   java.push("    void startMapEntry();");
   java.push("");
   java.push("    void endMapEntry();");
-  java.push("");
-  java.push("    void startMapKey();");
-  java.push("");
-  java.push("    void endMapKey();");
-  java.push("");
-  java.push("    void startMapValue();");
-  java.push("");
-  java.push("    void endMapValue();");
   java.push("");
   java.push("    void startField(Field f);");
   java.push("");
@@ -563,49 +594,37 @@ export function compileSchemaCallbackJava(
   java.push("");
   java.push("    public void endStruct(StructDefinition def) {");
   java.push("    }");
-java.push("");
+  java.push("");
   java.push("    public void startMessage(MessageDefinition def) {");
   java.push("    }");
   java.push("");
   java.push("    public void endMessage(MessageDefinition def) {");
   java.push("    }");
-java.push("");
+  java.push("");
   java.push("    public void startArray(int len) {");
   java.push("    }");
   java.push("");
   java.push("    public void endArray(int len) {");
   java.push("    }");
-java.push("");
+  java.push("");
   java.push("    public void startMap(int len) {");
   java.push("    }");
   java.push("");
   java.push("    public void endMap(int len) {");
   java.push("    }");
-java.push("");
+  java.push("");
   java.push("    public void startMapEntry() {");
   java.push("    }");
   java.push("");
   java.push("    public void endMapEntry() {");
   java.push("    }");
-java.push("");
-  java.push("    public void startMapKey() {");
-  java.push("    }");
   java.push("");
-  java.push("    public void endMapKey() {");
-  java.push("    }");
-java.push("");
-  java.push("    public void startMapValue() {");
-  java.push("    }");
-  java.push("");
-  java.push("    public void endMapValue() {");
-  java.push("    }");
-java.push("");
   java.push("    public void startField(Field f) {");
   java.push("    }");
   java.push("");
   java.push("    public void endField(Field f) {");
   java.push("    }");
-java.push("");
+  java.push("");
   java.push("    public void boolValue(boolean v) {");
   java.push("    }");
   java.push("");
@@ -698,10 +717,8 @@ java.push("");
         java.push("            break;");
         java.push("          }");
       }
+      java.push("          default:");
       java.push(
-        '          default:'
-      );
-java.push(
         '            throw new IllegalArgumentException("unrecognized field tag: " + _type);'
       );
 
