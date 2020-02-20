@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <initializer_list>
 #include <memory.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -172,6 +173,8 @@ namespace kiwi {
 
 #endif
 #ifdef IMPLEMENT_KIWI_H
+#ifndef IMPLEMENT_KIWI_H_
+#define IMPLEMENT_KIWI_H_
 
   kiwi::ByteBuffer::ByteBuffer() : _data(new uint8_t[INITIAL_CAPACITY]), _capacity(INITIAL_CAPACITY), _ownsData(true) {
   }
@@ -550,4 +553,5 @@ namespace kiwi {
     return true;
   }
 
+#endif
 #endif

@@ -6,6 +6,7 @@ enum Enum {
 }
 
 struct EnumStruct { Enum x; Enum[] y; }
+
 struct BoolStruct { bool x; }
 struct ByteStruct { byte x; }
 struct IntStruct { int x; }
@@ -25,7 +26,7 @@ message Float32ArrayMessage { float32[] x = 1; }
 message StringMessage { string x = 1; }
 message CompoundMessage { uint x = 1; uint y = 2; }
 message MapMessage { map<string, int> x = 1; }
-message NestedMessage { uint a = 1; CompoundMessage b = 2; uint c = 3; map<string, CompoundMessage> d = 4;}
+message NestedMessage { uint a = 1; CompoundMessage b = 2; uint c = 3; map<string, CompoundMessage> d = 4; }
 
 struct EnumArrayStruct { Enum[] x; }
 struct BoolArrayStruct { bool[] x; }
